@@ -226,7 +226,8 @@ class LiveIndexer {
     const gaps = rows.slice(1).map((r, i) => r.y - rows[i].y).filter((g) => g > 5).sort((a, b) => a - b);
     const rowH = gaps.length ? gaps[Math.floor(gaps.length / 4)] : 19;
     // Compare letters and digits only: OCR reads "_" as space, drops dots, etc.
-    const norm = (t) => t.toLowerCase().replace(/\.(amxd|adv|adg)$/, '').replace(/[^a-z0-9äöüß]/g, '');
+    // I, l, 1 and | look alike to OCR ("Granulator II" is read as "Granulator Il").
+    const norm = (t) => t.toLowerCase().replace(/\.(amxd|adv|adg)$/, '').replace(/[l1|!]/g, 'i').replace(/[^a-z0-9äöüß]/g, '');
     const want = norm(name);
     // OCR puts the row's little icon in front of the text ("AU", "E", "2"…); allow up to 3 junk characters.
     const hit = rows.find((r) => { const t = norm(r.text); return t === want || (t.endsWith(want) && t.length - want.length <= 3); });
