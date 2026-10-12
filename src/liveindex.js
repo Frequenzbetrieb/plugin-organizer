@@ -28,17 +28,25 @@ function shrink(file) {
   return new Promise((resolve) => execFile('sips', ['--resampleWidthMax', '720', file], () => resolve()));
 }
 
-// Live's main window: the one whose title matches Live's front window (Live can have hidden or second windows).
 async function frontTitle() {
   return new Promise((resolve) => execFile('osascript', ['-e',
     'tell application "System Events" to tell process "Live" to get name of front window'], (err, out) => resolve(err ? '' : out.trim())));
 }
-async function mainWindowOf(wins) {
-  const title = await frontTitle();
-  const candidates = wins.filter((w) => !w.title.includes('/'));
-  return candidates.find((w) => title && w.title === title)
-    || candidates.reduce((a, b) => (a && a.w * a.h >= b.w * b.h ? a : b), null);
+// Live can have a second window (e.g. Arrangement) with the same title. The right one is the window whose
+// browser shows the search results – so look for the entry in every large Live window, last hit first.
+async function findInResults(loader, query, tmp, deadline) {
+  for (;;) {
+    const wins = (await windows()).filter((w) => w.w > 500 && w.h > 300 && !w.title.includes('/'));
+    wins.sort((a, b) => (b.id === loader.browserWin) - (a.id === loader.browserWin) || b.w * b.h - a.w * a.h);
+    for (const w of wins) {
+      const index = await loader.resultIndex(w, query, tmp);
+      if (index >= 0) { loader.browserWin = w.id; return { main: w, index }; }
+    }
+    if (Date.now() > deadline) return { main: null, index: -1 };
+    await sleep(150);
+  }
 }
+
 
 class LiveIndexer {
   constructor(dir, store, onUpdate) {
@@ -112,11 +120,6 @@ class LiveIndexer {
     const tmpB = path.join(this.dir, `.after-${hash}.png`);
 
     const before = await windows();
-    // Find Live's main window once per run (AppleScript can stall while Live is busy), then reuse it by id/title.
-    let main = this.main && (before.find((w) => w.id === this.main.id) || before.find((w) => w.title && w.title === this.main.title));
-    if (!main) main = this.main = await mainWindowOf(before);
-    if (!main) return false;
-    await helper(['capture', String(main.id), tmpA]);
 
     // Search, then find the exact entry in the result list by reading it (generic names like "Reverb"
     // otherwise load "Convolution Reverb", which Live lists first).
@@ -124,16 +127,15 @@ class LiveIndexer {
     await ableton.search(query);
     // Poll the result list until the entry shows up (usually well under a second).
     let index = -1;
+    let main = null;
     // Live can be slow to show results (or miss the typing while busy): wait up to 4 s, then type once more.
     for (let attempt = 0; attempt < 2 && index < 0; attempt++) {
       if (attempt > 0) await ableton.search(query);
-      const searchDeadline = Date.now() + 4000;
       await sleep(attempt ? 600 : 200);
-      do {
-        index = await this.resultIndex(main, query, tmpB);
-        if (index < 0) await sleep(200);
-      } while (index < 0 && Date.now() < searchDeadline);
+      ({ main, index } = await findInResults(this, query, tmpB, Date.now() + 4000));
     }
+    // "Before" picture of the window with the browser and device view (the search doesn't touch the device view).
+    if (main) await helper(['capture', String(main.id), tmpA]);
     if (index < 0) {
       this.lastUndo = 'not in results';
       fs.mkdirSync(path.join(this.dir, 'debug'), { recursive: true });
@@ -283,21 +285,17 @@ async function loadExact(plugin, opts = {}) {
     return ableton.loadPlugin({ ...plugin, name: query });
   }
   if (!loader) loader = new LiveIndexer(os.tmpdir(), {}, () => {});
-  const wins = await windows();
-  let main = loader.main && wins.find((w) => w.id === loader.main.id);
-  if (!main) main = loader.main = await mainWindowOf(wins);
   const tmp = path.join(os.tmpdir(), `po-load-${process.pid}.png`);
   // New track first: Live selects it, and the search typed afterwards starts with a fresh result list.
   if (opts.newTrack) await newTrack(plugin.type === 'Effect' ? 'audio' : 'midi');
   await ableton.search(query);
-  let index = -1;
-  const deadline = Date.now() + 2500;
   await sleep(200);
-  if (main) {
-    do {
-      index = await loader.resultIndex(main, query, tmp);
-      if (index < 0) await sleep(150);
-    } while (index < 0 && Date.now() < deadline);
+  let { main, index } = await findInResults(loader, query, tmp, Date.now() + 3000);
+  if (index < 0) {
+    // Live sometimes misses the typing while busy: type once more.
+    await ableton.search(query);
+    await sleep(500);
+    ({ main, index } = await findInResults(loader, query, tmp, Date.now() + 3000));
   }
   // Never load a different item: without an exact hit, report it (and remove the track we just made).
   if (index < 0) {
