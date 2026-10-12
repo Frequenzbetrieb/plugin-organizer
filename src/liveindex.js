@@ -7,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const ableton = require('./ableton');
 
-const BIN = path.join(__dirname, '..', 'bin', 'livecapture');
+const BIN = require('./paths').bin('livecapture');
 const groupKey = (p) => `${p.name.toLowerCase()}|${p.vendor.toLowerCase()}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

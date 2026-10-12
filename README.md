@@ -7,6 +7,7 @@
 Ein kostenloses Open-Source-Projekt von <a href="https://www.frequenzbetrieb.de">Frequenzbetrieb n.e.V.</a></p>
 
 <p align="center">
+  <a href="../../actions/workflows/build.yml"><img src="../../actions/workflows/build.yml/badge.svg" alt="Build"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-AGPLv3-orange" alt="AGPLv3"></a>
   <a href="https://www.frequenzbetrieb.de/spenden/"><img src="https://img.shields.io/badge/♥-Spenden-ff5a2c" alt="Spenden"></a>
 </p>
@@ -25,7 +26,22 @@ Der Plugin Organizer zeigt alle installierten Plugins, die Stock-Devices von Abl
 - **Health:** Speicherbedarf der Plugins, Intel-only-Plugins (Rosetta), nie genutzte Plugins, VST2-Duplikate, AAX ohne Pro Tools, Plugins aus deinen Live-Sets, die auf diesem Rechner fehlen.
 - **Fenster:** immer im Vordergrund, global per Taste ein-/ausblenden (Standard: Bild↑), nach dem Laden automatisch ausblenden.
 
-## Installation & Start
+## Download
+
+**Direkt-Download der neuesten Version:** [macOS (Universal, DMG)](https://github.com/Frequenzbetrieb/plugin-organizer/releases/latest/download/Frequenzbetrieb-Plugin-Organizer-macOS-universal.dmg) · [Windows (Installer)](https://github.com/Frequenzbetrieb/plugin-organizer/releases/latest/download/Frequenzbetrieb-Plugin-Organizer-Windows-x64-Setup.exe) · [alle Versionen](../../releases). Jeder Commit wird zusätzlich automatisch gebaut; die Dateien liegen dann unter [Actions](../../actions) → letzter Lauf → *Artifacts*.
+
+| System | Datei | Installation |
+|---|---|---|
+| macOS 13+ (Apple Silicon & Intel) | `…-macOS-universal.dmg` | DMG öffnen, App in „Programme“ ziehen |
+| Windows 10/11 (x64) | `…-Windows-x64-Setup.exe` | Installer starten (oder die ZIP-Version entpacken) |
+
+> Die Builds sind (noch) nicht signiert. macOS: einmalig
+> `xattr -dr com.apple.quarantine "/Applications/Frequenzbetrieb Plugin Organizer.app"` ausführen.
+> Windows: SmartScreen-Hinweis mit „Weitere Informationen → Trotzdem ausführen“ bestätigen.
+
+**Unter Windows** funktionieren bisher Bibliothek, Sortierung, Sammlungen, Health und das Laden in Live per Klick/Taste. Echte Vorschaubilder, der Live-Index und „auf neuer Spur laden“ gibt es vorerst nur auf dem Mac.
+
+## Selbst bauen & starten
 
 Voraussetzungen: macOS 13 oder neuer, [Node.js](https://nodejs.org) ≥ 20, Xcode Command Line Tools (`xcode-select --install`) und Git.
 
@@ -35,6 +51,8 @@ cd plugin-organizer
 npm install
 npm start
 ```
+
+Fertige App bauen: `npm run dist:mac` bzw. `npm run dist:win` (Ergebnis in `dist/`).
 
 Beim ersten `npm start` werden die kleinen nativen Helfer gebaut (`bin/`): `au-snapshot` (Swift), `livecapture` (Swift) und `vst3-snapshot` (C++/Objective-C++, lädt dafür einmalig das [VST3 SDK](https://github.com/steinbergmedia/vst3sdk) nach `native/vst3sdk`).
 

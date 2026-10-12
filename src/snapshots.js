@@ -6,10 +6,8 @@ const path = require('path');
 const fs = require('fs');
 
 const isMac = process.platform === 'darwin';
-const BIN = {
-  au: path.join(__dirname, '..', 'bin', 'au-snapshot'),
-  vst3: path.join(__dirname, '..', 'bin', 'vst3-snapshot'),
-};
+const { bin } = require('./paths');
+const BIN = { au: bin('au-snapshot'), vst3: bin('vst3-snapshot') };
 const TIMEOUT_MS = 30000;
 const PARALLEL = 3;
 

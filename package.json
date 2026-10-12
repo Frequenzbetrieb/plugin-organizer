@@ -6,10 +6,13 @@
   "main": "src/main.js",
   "scripts": {
     "start": "npm run build:native && electron .",
-    "build:native": "mkdir -p bin && [ bin/au-snapshot -nt native/snapshot.swift ] || swiftc -O native/snapshot.swift -o bin/au-snapshot; [ bin/livecapture -nt native/livecapture.swift ] || swiftc -O native/livecapture.swift -o bin/livecapture; [ -x bin/vst3-snapshot ] || sh native/build-vst3.sh"
+    "build:native": "node native/build.js",
+    "dist:mac": "UNIVERSAL=1 node native/build.js && electron-builder --mac --universal --publish never",
+    "dist:win": "electron-builder --win --x64 --publish never"
   },
   "devDependencies": {
-    "electron": "^33.2.0"
+    "electron": "^33.2.0",
+    "electron-builder": "^24.13.3"
   },
   "allowScripts": {
     "electron@33.4.11": true
@@ -34,5 +37,79 @@
     "audio-unit",
     "music-production",
     "electron"
-  ]
+  ],
+  "build": {
+    "appId": "de.frequenzbetrieb.pluginorganizer",
+    "productName": "Frequenzbetrieb Plugin Organizer",
+    "copyright": "© Frequenzbetrieb n.e.V. – AGPL-3.0",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "LICENSE"
+    ],
+    "mac": {
+      "category": "public.app-category.music",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "artifactName": "Frequenzbetrieb-Plugin-Organizer-macOS-universal.${ext}",
+      "identity": null,
+      "x64ArchFiles": "Contents/Resources/bin/*",
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Der Plugin Organizer steuert Ableton Live, um Plugins auf die ausgewählte Spur zu laden.",
+        "NSScreenCaptureUsageDescription": "Für den Live-Index fotografiert der Plugin Organizer Plugin-Fenster in Ableton Live."
+      },
+      "extraResources": [
+        {
+          "from": "bin",
+          "to": "bin",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "Plugin Organizer"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Frequenzbetrieb-Plugin-Organizer-Windows-x64.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Frequenzbetrieb-Plugin-Organizer-Windows-x64-Setup.${ext}"
+    },
+    "afterSign": "build/adhoc-sign.js"
+  }
 }

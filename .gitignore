@@ -4,3 +4,4 @@ dist/
 native/vst3sdk/
 *.log
 .DS_Store
+!build/

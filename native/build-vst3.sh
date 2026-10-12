@@ -17,7 +17,9 @@ SRC="native/vst3snap/main.mm
   $SDK/base/source/fobject.cpp $SDK/base/source/fstring.cpp $SDK/base/source/fdebug.cpp
   $SDK/base/source/updatehandler.cpp $SDK/base/source/baseiids.cpp
   $SDK/base/thread/source/flock.cpp"
-clang++ -std=c++17 -O2 -fobjc-arc -DRELEASE=1 -I"$SDK" $SRC \
+ARCH=""
+[ "$UNIVERSAL" = "1" ] && ARCH="-arch arm64 -arch x86_64"
+clang++ -std=c++17 -O2 -fobjc-arc -mmacosx-version-min=13.0 $ARCH -DRELEASE=1 -I"$SDK" $SRC \
   -framework AppKit -framework CoreFoundation -framework CoreGraphics \
   -o bin/vst3-snapshot
 echo "built bin/vst3-snapshot"

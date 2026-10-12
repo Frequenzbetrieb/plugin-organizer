@@ -68,7 +68,7 @@ const mapping = (v) => (typeof v === 'string' ? { id: v, newTrack: false } : v);
 let liveFront = false;
 function watchFrontApp() {
   if (process.platform !== 'darwin') return;
-  const bin = path.join(__dirname, '..', 'bin', 'livecapture');
+  const bin = require('./paths').bin('livecapture');
   if (!fs.existsSync(bin)) return;
   const child = require('child_process').spawn(bin, ['watchfront'], { stdio: ['ignore', 'pipe', 'ignore'] });
   let buf = '';
