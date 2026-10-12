@@ -244,22 +244,30 @@ async function scanMax() {
     const name = path.basename(f, '.amxd');
     if (seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
-    let kind = 'aaaa';
+    let head = '';
     try {
       const fd = fs.openSync(f, 'r');
       const buf = Buffer.alloc(12);
       fs.readSync(fd, buf, 0, 12, 0);
       fs.closeSync(fd);
-      kind = buf.toString('latin1', 8, 12);
+      head = buf.toString('latin1');
     } catch { /* unreadable */ }
-    const folder = kind === 'iiii' ? 'Instruments' : kind === 'mmmm' ? 'MIDI Effects' : 'Audio Effects';
+    // Real Max devices start with "ampf"; cloud placeholders and broken files are skipped.
+    if (!head.startsWith('ampf')) continue;
+    const kind = head.slice(8, 12);
     // Vendor = the pack the device comes from (the folder right after "…Packs").
     const parts = f.split(path.sep);
     const pi = parts.findIndex((x) => /packs$/i.test(x));
     const pack = pi >= 0 && parts[pi + 1] && !parts[pi + 1].endsWith('.amxd') ? parts[pi + 1] : /user library/i.test(f) ? 'User Library' : 'Max for Live';
+    // Live 12 MIDI Tools (generators "nagg", transformations "natt") work in the clip view, not on a track.
+    const midiTool = kind === 'nagg' || kind === 'natt';
+    const folder = kind === 'iiii' ? 'Instruments' : kind === 'mmmm' || midiTool ? 'MIDI Effects' : 'Audio Effects';
+    const cls = midiTool
+      ? { type: 'MIDI FX', category: 'MIDI Tools', sub: kind === 'nagg' ? 'Generator' : 'Transformation' }
+      : classifyStock(name, folder);
     out.push({
       id: `Max:${f}`, name, vendor: pack, format: 'Max', source: 'Max',
-      path: f, icon: null, ...classifyStock(name, folder),
+      path: f, icon: null, ...cls, ...(midiTool ? { midiTool: true } : {}),
     });
   }
   return out;

@@ -55,6 +55,7 @@ class LiveIndexer {
     const groups = new Map();
     for (const p of library) {
       if (!ableton.SUPPORTED_FORMATS.includes(p.format)) continue;
+      if (p.midiTool) continue; // MIDI Tools live in the clip view – nothing to photograph on the track
       const k = groupKey(p);
       const have = this.store[k];
       if (onlyMissing && have && have !== 'failed') continue;
