@@ -1,0 +1,6 @@
+node_modules/
+bin/
+dist/
+native/vst3sdk/
+*.log
+.DS_Store

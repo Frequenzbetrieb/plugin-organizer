@@ -1,0 +1,38 @@
+{
+  "name": "frequenzbetrieb-plugin-organizer",
+  "productName": "Frequenzbetrieb Plugin Organizer",
+  "version": "0.1.0",
+  "description": "Kostenloser Plugin-Organizer für Ableton Live: Plugins finden, sortieren, mit echten Vorschaubildern ansehen und per Klick oder Taste laden. Ein Open-Source-Projekt von Frequenzbetrieb n.e.V.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "npm run build:native && electron .",
+    "build:native": "mkdir -p bin && [ bin/au-snapshot -nt native/snapshot.swift ] || swiftc -O native/snapshot.swift -o bin/au-snapshot; [ bin/livecapture -nt native/livecapture.swift ] || swiftc -O native/livecapture.swift -o bin/livecapture; [ -x bin/vst3-snapshot ] || sh native/build-vst3.sh"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  },
+  "author": "Frequenzbetrieb n.e.V. (https://www.frequenzbetrieb.de)",
+  "license": "AGPL-3.0-only",
+  "homepage": "https://www.frequenzbetrieb.de",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Frequenzbetrieb/plugin-organizer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Frequenzbetrieb/plugin-organizer/issues"
+  },
+  "funding": "https://www.frequenzbetrieb.de/spenden/",
+  "keywords": [
+    "ableton",
+    "ableton-live",
+    "plugins",
+    "vst",
+    "vst3",
+    "audio-unit",
+    "music-production",
+    "electron"
+  ]
+}

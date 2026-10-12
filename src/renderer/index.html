@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' pimg: data:; style-src 'self' 'unsafe-inline'" />
+  <title>Frequenzbetrieb Plugin Organizer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" title="Frequenzbetrieb Plugin Organizer"><img src="../../assets/frequenzbetrieb-logo.png" alt="Frequenzbetrieb"><span>Plugin Organizer</span></div>
+    <div class="tabs"><button id="tabLib" class="active">Bibliothek</button><button id="tabHealth">Health</button></div>
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="Suchen – Name, Hersteller, Kategorie …  ( / )" autocomplete="off" />
+    </div>
+    <select id="sort" title="Sortierung">
+      <option value="name">Name</option>
+      <option value="vendor">Hersteller</option>
+      <option value="category">Kategorie</option>
+    </select>
+    <input id="size" type="range" min="140" max="420" step="10" title="Kachelgröße" />
+ <button id="liveIdxBtn" class="btn" title="Lädt Plugins ohne Bild in Ableton und fotografiert sie – auch VST2, Stock- und Max-Devices">Live-Index</button>
+    <button id="shotsBtn" class="btn" title="Ansichten erzeugen: öffnet jedes Plugin unsichtbar und nimmt seine Oberfläche auf">Ansichten</button>
+    <div id="daw" class="daw off" title="DAW-Status">Live</div>
+    <button id="rescan" class="btn" title="Plugin-Ordner neu scannen">Scannen</button>
+    <button id="settingsBtn" class="btn icon" title="Einstellungen">⚙</button>
+    <button id="hideBtn" class="btn" title="App ausblenden – dieselbe Taste holt sie zurück">Ausblenden <kbd id="hideKey">Bild↑</kbd></button>
+  </header>
+
+  <div class="filterbar" id="filterbar">
+    <div class="seg big" id="typeTabs"></div>
+    <span class="flabel">Quelle</span><div class="seg" id="sourceTabs"></div>
+    <span class="flabel">Format</span><div class="chips2" id="formatChips"></div>
+    <div class="spacer"></div>
+    <div class="seg" id="viewTabs"></div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <section>
+        <label class="toggle"><input type="checkbox" id="groupFormats" checked /> Formate zusammenfassen</label>
+        <label class="toggle"><input type="checkbox" id="onlyFavorites" /> ★ Nur Favoriten</label>
+        <label class="toggle"><input type="checkbox" id="onlyMapped" /> ⌨ Nur belegte</label>
+        <label class="toggle"><input type="checkbox" id="showHidden" /> 🗑 Ausgeblendete zeigen</label>
+      </section>
+      <section>
+        <h3>Eigene</h3>
+        <ul id="collections" class="facet"></ul>
+        <div id="newColl" class="newcoll">+ Neu</div>
+      </section>
+      <section>
+        <h3>Kategorie</h3>
+        <ul id="categories" class="facet tree"></ul>
+      </section>
+      <section>
+        <h3>Hersteller</h3>
+        <input id="vendorSearch" class="mini" placeholder="Hersteller filtern" />
+        <ul id="vendors" class="facet"></ul>
+        <div id="vendorsMore" class="newcoll"></div>
+      </section>
+      <section class="fb">
+        <img src="../../assets/frequenzbetrieb-logo.png" alt="Frequenzbetrieb">
+        <p>Kostenlos &amp; Open Source von <a href="#" data-link="homepage">Frequenzbetrieb n.e.V.</a></p>
+        <button class="btn donate" data-link="donate">♥ Spenden</button>
+      </section>
+    </aside>
+
+    <main id="libView">
+      <div id="status" class="status"></div>
+      <div id="grid" class="grid"></div>
+    </main>
+    <main id="healthView" class="hidden"></main>
+  </div>
+
+  <footer class="keyboard-panel">
+    <div class="kb-head">
+      <label>Layout <select id="kbLayout"></select></label>
+      <label>Global mit <select id="kbModifier"></select></label>
+      <label class="toggle"><input type="checkbox" id="globalHotkeys" /> Globale Hotkeys</label>
+      <label class="toggle"><input type="checkbox" id="showDaw" /> Live-Tasten zeigen</label>
+      <span class="kb-hint" id="kbHint"></span>
+      <button id="toggleKb" class="btn small">Ausblenden</button>
+    </div>
+    <div class="kb-body">
+      <div id="keyboard" class="keyboard"></div>
+      <div class="kb-info">
+        <b>So geht's</b>
+        <p>Karte auf eine Taste ziehen, oder Rechtsklick auf eine Karte → „Taste zuweisen …“ und Taste drücken.</p>
+        <p>Rechtsklick auf eine belegte Taste: <b>„Auf neuer Spur laden“</b> – dann legt die Taste in Live erst eine neue Spur an (MIDI für Instrumente, Audio für Effekte) und lädt das Plugin dort.</p>
+        <p id="kbModNote"></p>
+        <p>⇧-Klick auf eine Karte lädt ebenfalls auf eine neue Spur.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div id="idxbar" class="idxbar hidden"><span id="idxText"></span><span class="spacer"></span><span class="muted">Laden wartet, bis es fertig ist</span><button class="btn small" id="idxStop">Stopp</button></div>
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head"><b>Einstellungen</b><button class="btn small" id="settingsClose">Fertig</button></div>
+      <label class="srow"><span><b>Immer im Vordergrund</b><small>Die App bleibt über Live sichtbar, auch im Vollbild.</small></span><input type="checkbox" id="setOnTop"></label>
+      <div class="srow"><span><b>Ein-/Ausblenden-Taste</b><small>Global: blendet die App aus und holt sie wieder nach vorne. Klick ins Feld, dann Taste(n) drücken.</small></span>
+        <span class="keyrec"><button class="btn" id="setToggleKey">Bild↑</button><button class="btn small" id="clearToggleKey" title="Keine Taste">✕</button></span></div>
+      <label class="srow"><span><b>Nach dem Laden ausblenden</b><small>Sobald ein Plugin in Live geladen ist, verschwindet die App und du bist direkt in Live.</small></span><input type="checkbox" id="setHideAfter"></label>
+      <div class="about">
+        <img src="../../assets/frequenzbetrieb-logo.png" alt="Frequenzbetrieb">
+        <p><b>Frequenzbetrieb Plugin Organizer</b> <span id="appVersion"></span><br>
+        Ein kostenloses Open-Source-Projekt von <b>Frequenzbetrieb n.e.V.</b> – frei nutzbar unter der AGPL-3.0.
+        Wenn dir das Programm hilft, freuen wir uns über eine Spende für die Vereinsarbeit.</p>
+        <div class="about-links">
+          <button class="btn donate" data-link="donate">♥ Spenden</button>
+          <button class="btn" data-link="homepage">www.frequenzbetrieb.de</button>
+          <button class="btn" data-link="github">GitHub</button>
+          <button class="btn" data-link="issues">Fehler melden</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="menu" class="menu hidden"></div>
+  <div id="preview" class="preview hidden"><img></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="keyboard.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

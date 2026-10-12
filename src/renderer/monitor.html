@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' pimg: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'" />
+  <style>
+    body { margin: 0; background: #14151a; color: #e8e9ee; font: 12px -apple-system, sans-serif; padding: 10px; user-select: none; border: 1px solid #ff7a3d; height: 100vh; box-sizing: border-box; overflow: hidden; }
+    .row { display: flex; justify-content: space-between; align-items: center; }
+    b { font-size: 13px; }
+    .bar { height: 5px; background: #22252e; border-radius: 9px; margin: 8px 0; overflow: hidden; }
+    .bar div { height: 100%; background: #ff7a3d; width: 0; }
+    .muted { color: #8b90a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .shot { height: 130px; background: #22252e; border-radius: 6px; display: grid; place-items: center; overflow: hidden; margin-top: 6px; }
+    .shot img { max-width: 100%; max-height: 130px; }
+    button { background: #22252e; color: #e8e9ee; border: 1px solid #2e323d; border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="row"><b>In Live indexieren</b><button id="stop">Stopp</button></div>
+  <div class="bar"><div id="fill"></div></div>
+  <div class="row"><span id="count" class="muted">–</span></div>
+  <div id="current" class="muted">Starte …</div>
+  <div class="shot" id="shot"><span class="muted">Noch kein Bild</span></div>
+  <div id="last" class="muted"></div>
+  <script>
+    const $ = (s) => document.querySelector(s);
+    let ok = 0;
+    let fail = 0;
+    window.api.on('liveindex', (u) => {
+      if (u.shot) {
+        if (u.shot.path && u.shot.path !== 'failed') {
+          ok++;
+          $('#shot').innerHTML = `<img src="pimg://img/?p=${encodeURIComponent(u.shot.path)}">`;
+          $('#last').textContent = `✓ ${u.shot.name || ''}`;
+        } else {
+          fail++;
+          $('#last').textContent = `✕ ${u.shot.name || ''} – kein Bild`;
+        }
+      }
+      if (u.total !== undefined) {
+        $('#fill').style.width = `${u.total ? (u.done / u.total) * 100 : 0}%`;
+        $('#count').textContent = `${u.done} / ${u.total} · ${ok} ok · ${fail} ohne Bild`;
+        $('#current').textContent = u.running ? (u.current ? `Nehme auf: ${u.current}` : '…') : 'Fertig';
+      }
+    });
+    $('#stop').onclick = () => window.api.liveIndexStop();
+  </script>
+</body>
+</html>
