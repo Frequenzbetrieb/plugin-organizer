@@ -1,0 +1,80 @@
+<!-- Titel: FREQUENZBETRIEB PLUGIN ORGANIZER – Schluss mit der Plugin-Suche -->
+<!-- Kategorie-Vorschlag: Software / Tools · Tags: Ableton Live, Plugins, VST, Open Source, Musikproduktion -->
+
+<p><strong>Kennst du das? Mitten im Track, die Idee ist da – und du scrollst durch eine Liste mit 2.000 Plugin-Namen, von denen du die Hälfte nicht mehr zuordnen kannst. Genau dafür haben wir den FREQUENZBETRIEB Plugin Organizer gebaut: ein kostenloses Tool, das alle deine Plugins mit echtem Bild zeigt und sie per Klick oder Taste direkt in Ableton Live lädt.</strong></p>
+
+<figure class="wp-block-image size-large"><img src="https://raw.githubusercontent.com/Frequenzbetrieb/plugin-organizer/main/docs/screenshot.png" alt="Der FREQUENZBETRIEB Plugin Organizer mit Kategorien, Vorschaubildern und Tasten-Mapping"/></figure>
+
+<h2>Was der Plugin Organizer macht</h2>
+
+<p>Der Plugin Organizer läuft neben Live, nicht in Live. Er ist kein Plugin, sitzt also nicht im Signalweg und kostet keine CPU in deinem Projekt. Beim ersten Start sucht er alles zusammen, was auf deinem Mac liegt: AU, VST, VST3, AAX und CLAP, dazu Lives eigene Stock-Devices und deine Max-for-Live-Devices aus User Library und Packs.</p>
+
+<h3>Du siehst, was du lädst</h3>
+
+<p>Statt Namen bekommst du Bilder. Der Organizer öffnet jedes Plugin unsichtbar im Hintergrund und fotografiert seine Oberfläche. Für Stock- und Max-Devices geht er direkt in Live: laden, Foto, wieder rückgängig machen. Dein Set bleibt dabei sauber. Am Ende hat fast jedes Plugin eine Kachel, an der du es auf einen Blick erkennst.</p>
+
+<h3>Ordnung, ohne dass du aufräumen musst</h3>
+
+<ul>
+<li><strong>Automatische Kategorien</strong> mit Unterkategorien: Dynamics → Compressor, Limiter, De-Esser, Gate … EQ, Reverb, Delay, Drive, Synth, Drums und so weiter.</li>
+<li><strong>Effekte, Instrumente, MIDI FX</strong> sauber getrennt – und wo die Automatik danebenliegt, korrigierst du es mit einem Rechtsklick.</li>
+<li><strong>Hersteller-Ansicht</strong>, Favoriten und <strong>eigene Sammlungen</strong> mit Farben – zum Beispiel „Mastering“, „Schranz-Leads“ oder „Live-Set“.</li>
+<li><strong>Doppelte Formate</strong> (AU, VST, VST3 vom selben Plugin) werden zu einer Kachel zusammengefasst.</li>
+</ul>
+
+<h3>Ein Klick, und es liegt auf der Spur</h3>
+
+<p>Klick auf eine Kachel – und das Plugin landet auf der ausgewählten Spur in Ableton Live. Mit gedrückter Umschalttaste legt der Organizer vorher eine neue Spur an: MIDI für Instrumente, Audio für Effekte. Er sucht dabei genau das richtige Gerät heraus, auch wenn Live das Plugin unter einem anderen Namen führt.</p>
+
+<h3>Deine Plugins auf Tasten</h3>
+
+<p>Zieh ein Plugin auf eine Taste der Bildschirmtastatur – mit F-Tasten, Ziffernblock und allem, was dazugehört. Danach reicht in Live ⌃⌥⌘ plus Taste, und das Plugin ist da. Wer will, schaltet die Tasten so, dass sie ganz ohne Zusatztaste funktionieren, solange Live vorne ist. Tasten, die Live selbst belegt, sind markiert, damit du nichts Wichtiges überschreibst. Und pro Taste stellst du ein, ob das Plugin auf die aktuelle oder auf eine neue Spur soll.</p>
+
+<h3>Drei Ansichten für jeden Workflow</h3>
+
+<ul>
+<li><strong>Vollbild</strong> – die ganze Bibliothek mit allen Filtern.</li>
+<li><strong>Sidecar</strong> – eine schmale Leiste am Bildschirmrand direkt neben Live, Kategorien als Bildstreifen.</li>
+<li><strong>Mini</strong> – ein kleines Suchfenster: tippen, Pfeiltaste, Enter, fertig.</li>
+</ul>
+
+<p>Eine frei wählbare Taste blendet den Organizer aus und holt ihn wieder nach vorne. Auf Wunsch bleibt er immer im Vordergrund oder verschwindet automatisch, sobald ein Plugin geladen ist.</p>
+
+<h3>Library Health: Was frisst deinen Speicher?</h3>
+
+<p>Der Health-Bereich zeigt dir, wie viel Platz deine Plugins belegen und wie viel du zurückholen kannst: Plugins, die nur noch mit Rosetta laufen, VST2-Kopien von Plugins, die du längst als VST3 hast, AAX-Dateien ohne Pro Tools und Plugins, die du nie benutzt. Er liest sogar deine Live-Sets und sagt dir, welche Plugins darin auf diesem Rechner fehlen.</p>
+
+<h2>Download</h2>
+
+<p><strong>Plugin Organizer für macOS (Apple Silicon &amp; Intel):</strong><br>
+<a href="https://github.com/Frequenzbetrieb/plugin-organizer/releases/latest/download/Frequenzbetrieb-Plugin-Organizer-macOS-universal.dmg">→ Jetzt herunterladen (DMG)</a></p>
+
+<p>Die Windows-Version ist in Arbeit und folgt später.</p>
+
+<h3>Systemanforderungen</h3>
+
+<ul>
+<li>macOS 13 Ventura oder neuer, Apple Silicon oder Intel</li>
+<li>Ableton Live 12 zum Laden der Plugins (Bibliothek, Sortierung und Health funktionieren auch ohne Live)</li>
+</ul>
+
+<h3>Installation</h3>
+
+<ol>
+<li>DMG öffnen und den Plugin Organizer in den Ordner „Programme“ ziehen.</li>
+<li>Die App ist (noch) nicht bei Apple signiert. Öffne deshalb einmalig das Terminal und gib ein:<br>
+<code>xattr -dr com.apple.quarantine "/Applications/Frequenzbetrieb Plugin Organizer.app"</code></li>
+<li>App starten. macOS fragt nach <strong>Bedienungshilfen</strong> (zum Laden in Live) und – nur für Fotos direkt aus Live – nach <strong>Bildschirmaufnahme</strong>. Beides in den Systemeinstellungen unter „Datenschutz &amp; Sicherheit“ erlauben.</li>
+<li>Oben auf „Ansichten“ klicken – der Organizer fotografiert jetzt deine Plugins. Für Stock- und Max-Devices: Live mit leerem Set öffnen und „Live-Index“ starten.</li>
+</ol>
+
+<h2>Kostenlos und Open Source</h2>
+
+<p>Der Plugin Organizer kostet nichts und bleibt kostenlos. Der komplette Quellcode liegt offen auf GitHub unter der AGPL-3.0 – du kannst reinschauen, mitbauen, Fehler melden oder Ideen einbringen:<br>
+<a href="https://github.com/Frequenzbetrieb/plugin-organizer">github.com/Frequenzbetrieb/plugin-organizer</a></p>
+
+<p>Wenn dir das Tool Zeit spart und du unsere Vereinsarbeit unterstützen willst, freuen wir uns über eine <a href="https://www.frequenzbetrieb.de/spenden/">Spende</a>. Jeder Euro fließt in Projekte wie dieses.</p>
+
+<p><em>Ableton und Ableton Live sind Marken der Ableton AG, VST ist eine eingetragene Marke der Steinberg Media Technologies GmbH. Der Plugin Organizer ist ein unabhängiges Projekt und steht in keiner Verbindung zu Ableton oder Steinberg.</em></p>
+
+<p><em>Hinweis: Dieser Beitrag und die Software wurden mit Unterstützung von KI erstellt (Kennzeichnung gemäß EU AI Act, Art. 50).</em></p>

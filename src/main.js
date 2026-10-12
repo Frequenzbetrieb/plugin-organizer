@@ -248,6 +248,12 @@ function createWindow() {
     setTimeout(async () => {
       await win.webContents.executeJavaScript(process.env.PO_VIEW === 'health' ? "document.querySelector('#tabHealth').click()" : "document.querySelector('main').scrollTop = 0");
       if (process.env.PO_VIEW === 'health') await new Promise((r) => setTimeout(r, 12000));
+      if (process.env.PO_SHOWCASE) {
+        // Screenshot for the website: effects tab, category overview, from the top.
+        await win.webContents.executeJavaScript(`(() => { document.querySelectorAll('#typeTabs button')[1].click();
+          setTimeout(() => { document.querySelectorAll('#viewTabs button')[0].click(); if (${process.env.PO_NOKB ? 'true' : 'false'} && !document.querySelector('.keyboard-panel').classList.contains('collapsed')) document.querySelector('#toggleKb').click(); document.querySelector('main').scrollTop = 0; }, 200); })()`);
+        await new Promise((r) => setTimeout(r, 2500));
+      }
       if (process.env.PO_MODE) {
         await win.webContents.executeJavaScript(`setMode('${process.env.PO_MODE}')`);
         await new Promise((r) => setTimeout(r, 1500));
@@ -442,7 +448,7 @@ app.whenReady().then(() => {
   if (process.env.PO_TEST_LOAD) setTimeout(() => loadById(process.env.PO_TEST_LOAD, { newTrack: true }).then((r) => logError('test-load', JSON.stringify(r))), 5000);
   // Older caches lack AU component ids, which screenshots need.
   // Rescan once when the scanner learned something new (AU ids, types, MIDI Tools, …).
-  const SCANNER_VERSION = 5;
+  const SCANNER_VERSION = 7;
   const stale = library.some((p) => (p.format === 'AU' && !p.au) || !p.type) || settings.scannerVersion !== SCANNER_VERSION;
   if (stale) { settings.scannerVersion = SCANNER_VERSION; writeJson(settingsFile(), settings); }
   if (!library.length || stale) rescan().then(() => win.webContents.send('library', library));

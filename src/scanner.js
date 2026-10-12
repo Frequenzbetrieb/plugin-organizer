@@ -157,8 +157,15 @@ async function scan(onProgress) {
 // Bundle IDs sometimes yield generic words instead of a maker ("com.….vst3", "Synth", "FX2x8", "Uaudio").
 const GENERIC_VENDOR = /^(vst3?|synth|fx(\d+x\d+)?|mfx|audiounit|au|aax|clap|plugins?|component|instrument|effects?|unknown)$/i;
 
+// Makers whose bundle IDs use a short name ("com.uaudio…") instead of the real one.
+const VENDOR_ALIAS = { uaudio: 'Universal Audio', 'native-instruments': 'Native Instruments', nativeinstruments: 'Native Instruments', wavesaudio: 'Waves' };
+
 // Unifies vendor spelling and shares the best-known category across formats.
 function normalize(list) {
+  for (const p of list) {
+    const alias = VENDOR_ALIAS[p.vendor.toLowerCase()];
+    if (alias) p.vendor = alias;
+  }
   // A plugin known under a real maker in one format gets that maker in all formats.
   const realVendor = new Map();
   for (const p of list) {
@@ -169,7 +176,7 @@ function normalize(list) {
   }
   const vendors = new Map();
   for (const p of list) {
-    const k = p.vendor.toLowerCase();
+    const k = p.vendor.toLowerCase().replace(/[^a-z0-9]/g, ''); // "IK Multimedia" = "Ikmultimedia" = "IK-Multimedia"
     const cur = vendors.get(k);
     const caps = (s) => (s.match(/[A-Z]/g) || []).length;
     if (!cur || caps(p.vendor) > caps(cur)) vendors.set(k, p.vendor);
@@ -178,7 +185,7 @@ function normalize(list) {
   const score = (p) => (p.category === 'Unsorted' ? 0 : 1) + (p.format === 'AU' || p.format === 'VST3' ? 2 : 0);
   const best = new Map();
   for (const p of list) {
-    p.vendor = vendors.get(p.vendor.toLowerCase());
+    p.vendor = vendors.get(p.vendor.toLowerCase().replace(/[^a-z0-9]/g, ''));
     const k = p.name.toLowerCase();
     if (!best.has(k) || score(p) > score(best.get(k))) best.set(k, p);
   }
