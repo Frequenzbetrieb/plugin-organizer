@@ -273,11 +273,9 @@ function createWindow() {
           // Real mouse hover: over "Kategorie", then over the third submenu entry.
           const pt = async (sel) => win.webContents.executeJavaScript(`(() => { const r = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return [Math.round(r.left + 30), Math.round(r.top + r.height / 2)]; })()`);
           let [x, y] = await pt('#menu > .has-sub');
-          win.webContents.sendInputEvent({ type: 'mouseMove', x, y });
-          await new Promise((r) => setTimeout(r, 300));
-          [x, y] = await pt('#menu > .has-sub > .msubmenu > div:nth-child(3)');
-          win.webContents.sendInputEvent({ type: 'mouseMove', x, y });
-          await new Promise((r) => setTimeout(r, 300));
+          for (let k = 0; k < 3; k++) { win.webContents.sendInputEvent({ type: 'mouseMove', x: x + k, y }); await new Promise((r) => setTimeout(r, 200)); }
+          [x, y] = await pt('#menu > .has-sub > .msubmenu > div:nth-child(2)');
+          for (let k = 0; k < 3; k++) { win.webContents.sendInputEvent({ type: 'mouseMove', x: x + k, y }); await new Promise((r) => setTimeout(r, 200)); }
         }
       }
       await new Promise((r) => setTimeout(r, 1500));

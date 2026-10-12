@@ -547,6 +547,18 @@ function showMenu(e, clicked) {
       <span class="mchip" data-a="newcoll">＋ Neue Sammlung</span>
     </div>
     <hr>
+    <div class="mrow has-sub">Typ <span class="mval">${multi ? '' : esc(TYPE_LABELS[it.type] || it.type)} ›</span>
+      <div class="msubmenu">
+        ${['Effect', 'Instrument', 'MIDI FX'].map((t) => {
+          const tc = {};
+          for (const p of state.library) if (p.type === t) tc[p.category] = true;
+          const names = Object.keys(tc).filter((c) => c !== 'Unsorted').sort();
+          return `<div class="mrow has-sub" data-a="settype" data-v="${t}|Unsorted">${targets.every((x) => x.type === t) ? '✓ ' : ''}${esc(TYPE_LABELS[t])} ›
+            <div class="msubmenu">${names.map((c) => `<div data-a="settype" data-v="${t}|${esc(c)}">${esc(c)}</div>`).join('')}<hr><div data-a="settype" data-v="${t}|Unsorted">Unsorted (später zuordnen)</div></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
     <div class="mrow has-sub">Kategorie <span class="mval">${multi ? '' : esc(it.sub !== it.category ? `${it.category} › ${it.sub}` : it.category)} ›</span>
       <div class="msubmenu">
         ${catNames.map((c) => `<div class="mrow has-sub" data-a="cat" data-v="${esc(c)}|${esc(c)}">${it.category === c ? '✓ ' : ''}${esc(c)}${cats[c].size > 1 ? ' ›' : ''}
@@ -600,6 +612,14 @@ function showMenu(e, clicked) {
       for (const t of targets) for (const id of t.ids) o[id] = { type: t.type, category, sub };
       await save({ categoryOverrides: o });
       toast(`${multi ? `${targets.length} Plugins` : it.name} → ${category}${sub !== category ? ` › ${sub}` : ''}`);
+      state.selected.clear();
+    }
+    if (a === 'settype') {
+      const [type, category] = v.split('|');
+      const o = { ...st.categoryOverrides };
+      for (const id of ids) o[id] = { type, category, sub: category };
+      await save({ categoryOverrides: o });
+      toast(`${multi ? `${targets.length} Plugins` : it.name} → ${TYPE_LABELS[type]}${category !== 'Unsorted' ? ` › ${category}` : ''}`);
       state.selected.clear();
     }
     if (a === 'type') {
