@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const ableton = require('./ableton');
+const { hasPicture } = require('./snapshots');
 
 const BIN = require('./paths').bin('livecapture');
 const groupKey = (p) => `${p.name.toLowerCase()}|${p.vendor.toLowerCase()}`;
@@ -57,8 +58,7 @@ class LiveIndexer {
       if (!ableton.SUPPORTED_FORMATS.includes(p.format)) continue;
       if (p.midiTool) continue; // MIDI Tools live in the clip view – nothing to photograph on the track
       const k = groupKey(p);
-      const have = this.store[k];
-      if (onlyMissing && have && have !== 'failed') continue;
+      if (onlyMissing && hasPicture(this.store, p)) continue;
       if (!groups.has(k)) groups.set(k, p);
     }
     // Most useful first: stock devices, then Max devices from Ableton packs, own User Library devices last.

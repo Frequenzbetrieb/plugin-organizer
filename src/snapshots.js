@@ -12,6 +12,17 @@ const TIMEOUT_MS = 30000;
 const PARALLEL = 3;
 
 const groupKey = (p) => `${p.name.toLowerCase()}|${p.vendor.toLowerCase()}`;
+const { looseKey, buildIndex } = require('./shotkey');
+
+// True when this plugin – or a format variant of it – already has a picture.
+let idxCache = { store: null, size: -1, idx: null };
+function hasPicture(store, p) {
+  const v = store[groupKey(p)];
+  if (v && v !== 'failed') return true;
+  const size = Object.keys(store).length;
+  if (idxCache.store !== store || idxCache.size !== size) idxCache = { store, size, idx: buildIndex(store) };
+  return idxCache.idx.has(looseKey(p.name, p.vendor));
+}
 
 function available() {
   if (isMac) return fs.existsSync(BIN.au) || fs.existsSync(BIN.vst3);
@@ -26,9 +37,12 @@ function methods(p) {
   return m;
 }
 
-function captureOne(bin, payload, out) {
+// rosetta: run the (universal) helper as x86_64, so Intel-only plugins load on Apple Silicon.
+function captureOne(bin, payload, out, rosetta = false) {
   return new Promise((resolve) => {
-    const child = spawn(bin, [], { stdio: ['pipe', 'pipe', 'ignore'] });
+    const child = rosetta
+      ? spawn('arch', ['-x86_64', bin], { stdio: ['pipe', 'pipe', 'ignore'] })
+      : spawn(bin, [], { stdio: ['pipe', 'pipe', 'ignore'] });
     let stdout = '';
     const timer = setTimeout(() => child.kill('SIGKILL'), TIMEOUT_MS);
     child.stdout.on('data', (d) => { stdout += d; });
@@ -67,7 +81,8 @@ class Snapshotter {
     const groups = new Map();
     for (const p of plugins) {
       const key = groupKey(p);
-      if (queued.has(key) || (!force && this.store[key])) continue;
+      if (queued.has(key)) continue;
+      if (!force && (this.store[key] || hasPicture(this.store, p))) continue;
       if (!groups.has(key)) groups.set(key, { key, name: p.name, methods: [] });
       groups.get(key).methods.push(...methods(p));
     }
@@ -113,6 +128,13 @@ class Snapshotter {
       ok = await captureOne(m.bin, m.job, out);
       if (ok) break;
     }
+    // Second chance through Rosetta for Intel-only plugins (Apple Silicon only).
+    if (!ok && isMac && process.arch === 'arm64') {
+      for (const m of job.methods) {
+        ok = await captureOne(m.bin, m.job, out, true);
+        if (ok) break;
+      }
+    }
     if (ok) await shrink(out);
     const old = this.store[job.key];
     if (ok && old && old !== 'failed' && old !== out) fs.rm(old, () => {});
@@ -121,4 +143,4 @@ class Snapshotter {
   }
 }
 
-module.exports = { Snapshotter, available, groupKey };
+module.exports = { Snapshotter, available, groupKey, hasPicture };

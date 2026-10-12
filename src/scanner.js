@@ -4,6 +4,7 @@ const path = require('path');
 const os = require('os');
 const { execFile } = require('child_process');
 const { classify, classifyStock } = require('./taxonomy');
+// (SCANNER_VERSION in main.js triggers a rescan when this file learns something new.)
 
 const isMac = process.platform === 'darwin';
 const home = os.homedir();
@@ -146,15 +147,26 @@ async function scan(onProgress) {
   }
   await Promise.all(Array.from({ length: LIMIT }, worker));
   // Helper components that aren't loadable plugins.
-  const junk = /AAXHook$|^ASAF |AES3 Audio Decoder|^Apple (AUNetSend|AUNetReceive)/;
+  const junk = /AAXHook$|^ASAF |AES3 Audio Decoder|^Apple (AUNetSend|AUNetReceive)|^WaveShell\d/;
   for (let i = results.length - 1; i >= 0; i--) if (junk.test(results[i].name)) results.splice(i, 1);
   normalize(results);
   results.push(...scanStock(), ...(await scanMax()));
   return results.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Bundle IDs sometimes yield generic words instead of a maker ("com.….vst3", "Synth", "FX2x8", "Uaudio").
+const GENERIC_VENDOR = /^(vst3?|synth|fx(\d+x\d+)?|mfx|audiounit|au|aax|clap|plugins?|component|instrument|effects?|unknown)$/i;
+
 // Unifies vendor spelling and shares the best-known category across formats.
 function normalize(list) {
+  // A plugin known under a real maker in one format gets that maker in all formats.
+  const realVendor = new Map();
+  for (const p of list) {
+    if (!GENERIC_VENDOR.test(p.vendor) && !realVendor.has(p.name.toLowerCase())) realVendor.set(p.name.toLowerCase(), p.vendor);
+  }
+  for (const p of list) {
+    if (GENERIC_VENDOR.test(p.vendor)) p.vendor = realVendor.get(p.name.toLowerCase()) || 'Unknown';
+  }
   const vendors = new Map();
   for (const p of list) {
     const k = p.vendor.toLowerCase();

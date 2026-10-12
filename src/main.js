@@ -387,7 +387,7 @@ app.whenReady().then(() => {
   if (process.env.PO_TEST_LOAD) setTimeout(() => loadById(process.env.PO_TEST_LOAD, { newTrack: true }).then((r) => logError('test-load', JSON.stringify(r))), 5000);
   // Older caches lack AU component ids, which screenshots need.
   // Rescan once when the scanner learned something new (AU ids, types, MIDI Tools, …).
-  const SCANNER_VERSION = 3;
+  const SCANNER_VERSION = 5;
   const stale = library.some((p) => (p.format === 'AU' && !p.au) || !p.type) || settings.scannerVersion !== SCANNER_VERSION;
   if (stale) { settings.scannerVersion = SCANNER_VERSION; writeJson(settingsFile(), settings); }
   if (!library.length || stale) rescan().then(() => win.webContents.send('library', library));

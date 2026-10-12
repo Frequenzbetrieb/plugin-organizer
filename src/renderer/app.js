@@ -26,7 +26,15 @@ const state = {
   shots: {}, // name|vendor → screenshot path or 'failed'
 };
 const groupKey = (p) => `${p.name.toLowerCase()}|${p.vendor.toLowerCase()}`;
-const shotFor = (it) => { const v = state.shots[groupKey(it)]; return v && v !== 'failed' ? v : null; };
+// Picture of this plugin – or of the same plugin in another format/spelling (VST2 "… (Mono)", vendor variants).
+let looseIdx = null;
+let looseFor = null;
+const shotFor = (it) => {
+  const v = state.shots[groupKey(it)];
+  if (v && v !== 'failed') return v;
+  if (looseFor !== state.shots) { looseIdx = window.ShotKey.buildIndex(state.shots); looseFor = state.shots; }
+  return looseIdx.get(window.ShotKey.looseKey(it.name, it.vendor)) || null;
+};
 
 const TYPE_LABELS = { All: 'Alle', Effect: 'Effekte', Instrument: 'Instrumente', 'MIDI FX': 'MIDI FX' };
 const SOURCE_LABELS = { All: 'Alle', Plugin: 'Plugins', Stock: 'Stock', Max: 'Max' };
@@ -714,6 +722,7 @@ $('#rescan').onclick = async () => {
 window.api.on('snapshots', (u) => {
   if (u.shot) {
     state.shots[u.shot.key] = u.shot.path;
+    looseFor = null;
     clearTimeout(shotRenderTimer);
     shotRenderTimer = setTimeout(render, 800);
   } else {
