@@ -23,6 +23,14 @@
     <button id="shotsBtn" class="btn" title="Ansichten erzeugen: öffnet jedes Plugin unsichtbar und nimmt seine Oberfläche auf">Ansichten</button>
     <div id="daw" class="daw off" title="DAW-Status">Live</div>
     <button id="rescan" class="btn" title="Plugin-Ordner neu scannen">Scannen</button>
+    <div class="modewrap">
+      <button id="modeBtn" class="btn icon" title="Ansicht: Vollbild, Sidecar oder Mini">▣</button>
+      <div id="modeMenu" class="modemenu hidden">
+        <div data-mode="full"><i>▭</i>Vollbild</div>
+        <div data-mode="sidecar"><i>◧</i>Sidecar</div>
+        <div data-mode="mini"><i>▢</i>Mini</div>
+      </div>
+    </div>
     <button id="settingsBtn" class="btn icon" title="Einstellungen">⚙</button>
     <button id="hideBtn" class="btn" title="App ausblenden – dieselbe Taste holt sie zurück">Ausblenden <kbd id="hideKey">Bild↑</kbd></button>
   </header>
@@ -65,6 +73,7 @@
       </section>
     </aside>
 
+    <main id="sideView" class="hidden"></main>
     <main id="libView">
       <div id="status" class="status"></div>
       <div id="grid" class="grid"></div>

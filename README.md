@@ -24,6 +24,7 @@ Der Plugin Organizer zeigt alle installierten Plugins, die Stock-Devices von Abl
 - **Laden in Ableton Live:** Klick auf eine Karte, ⇧-Klick für eine neue Spur. Der Organizer sucht in Lives Browser exakt das richtige Gerät (Lives eigene Plugin-Namen werden aus Lives Datenbank gelesen).
 - **Tasten-Mapping:** Plugins auf Tasten legen (Layouts mit F-Tasten, Navigationsblock und Ziffernblock, Lives eigene Tasten markiert). Global mit ⌃⌥⌘ + Taste oder – nur solange Live vorne ist – mit der Taste allein. Pro Taste wählbar: auf ausgewählte oder neue Spur laden.
 - **Health:** Speicherbedarf der Plugins, Intel-only-Plugins (Rosetta), nie genutzte Plugins, VST2-Duplikate, AAX ohne Pro Tools, Plugins aus deinen Live-Sets, die auf diesem Rechner fehlen.
+- **Drei Ansichten:** Vollbild, **Sidecar** (schmale Leiste am Bildschirmrand neben Live, Kategorien als Bildstreifen) und **Mini** (kleines Suchfenster: tippen, ↑/↓, Enter lädt).
 - **Fenster:** immer im Vordergrund, global per Taste ein-/ausblenden (Standard: Bild↑), nach dem Laden automatisch ausblenden.
 
 ## Download

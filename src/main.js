@@ -10,7 +10,8 @@ const liveindex = require('./liveindex');
 const livedb = require('./livedb');
 
 // Keep the data folder from before the rename, so pictures, mappings and collections stay.
-app.setPath('userData', path.join(app.getPath('appData'), 'Plugin Organizer'));
+// PO_USERDATA (development): separate data folder, so a dev build can run next to the installed app.
+app.setPath('userData', process.env.PO_USERDATA || path.join(app.getPath('appData'), 'Plugin Organizer'));
 const dataDir = () => app.getPath('userData');
 
 const LINKS = {
@@ -36,6 +37,8 @@ const DEFAULT_SETTINGS = {
   alwaysOnTop: false,
   toggleKey: 'PageUp', // global key that hides/shows the app
   hideAfterLoad: false,
+  windowMode: 'full', // full | sidecar | mini
+  fullBounds: null, // size/position of the full window, restored when switching back
   showDawShortcuts: true,
   globalHotkeys: true,
   loadStats: {}, // name|vendor → { count, last }
@@ -102,6 +105,29 @@ function toggleWindow(forceShow = false) {
     app.focus({ steal: true });
     win.focus();
   }
+}
+
+// Window modes: the full window, a screen-high sidecar strip at the right edge, or a small floating search.
+function applyWindowMode(mode, remember = true) {
+  if (!win || win.isDestroyed()) return;
+  const { screen } = require('electron');
+  const display = screen.getDisplayMatching(win.getBounds());
+  const area = display.workArea;
+  if (settings.windowMode === 'full' && mode !== 'full' && remember) settings.fullBounds = win.getBounds();
+  settings.windowMode = mode;
+  if (mode === 'sidecar') {
+    win.setMinimumSize(300, 400);
+    win.setBounds({ x: area.x + area.width - 340, y: area.y, width: 340, height: area.height }, true);
+  } else if (mode === 'mini') {
+    win.setMinimumSize(300, 200);
+    win.setBounds({ x: Math.round(area.x + (area.width - 420) / 2), y: area.y + Math.round(area.height * 0.15), width: 420, height: 480 }, true);
+  } else {
+    win.setMinimumSize(900, 600);
+    const b = settings.fullBounds || { width: 1280, height: 860 };
+    win.setBounds({ x: b.x ?? area.x + 40, y: b.y ?? area.y + 40, width: b.width, height: b.height }, true);
+  }
+  writeJson(settingsFile(), settings);
+  send('window-mode', mode);
 }
 
 function applyWindowSettings() {
@@ -221,6 +247,18 @@ function createWindow() {
     setTimeout(async () => {
       await win.webContents.executeJavaScript(process.env.PO_VIEW === 'health' ? "document.querySelector('#tabHealth').click()" : "document.querySelector('main').scrollTop = 0");
       if (process.env.PO_VIEW === 'health') await new Promise((r) => setTimeout(r, 12000));
+      if (process.env.PO_MODE) {
+        await win.webContents.executeJavaScript(`setMode('${process.env.PO_MODE}')`);
+        await new Promise((r) => setTimeout(r, 1500));
+        if (process.env.PO_CLICKCAT) {
+          await win.webContents.executeJavaScript(`document.querySelectorAll('.sv-head')[3]?.click()`);
+          await new Promise((r) => setTimeout(r, 800));
+        }
+        if (process.env.PO_TYPE) {
+          await win.webContents.executeJavaScript(`(() => { const s = document.querySelector('#search'); s.value = '${process.env.PO_TYPE}'; s.dispatchEvent(new Event('input')); })()`);
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      }
       if (process.env.PO_SETTINGS) {
         await win.webContents.executeJavaScript(`document.querySelector('#settingsBtn').click()`);
         await new Promise((r) => setTimeout(r, 500));
@@ -371,6 +409,7 @@ app.whenReady().then(() => {
   ipcMain.handle('show-in-finder', (_e, p) => shell.showItemInFolder(p));
   ipcMain.handle('load-plugin', (_e, id, opts) => loadById(id, opts));
   ipcMain.handle('toggle-window', () => toggleWindow());
+  ipcMain.handle('window-mode', (_e, mode) => { applyWindowMode(mode); return settings; });
   ipcMain.handle('daw-status', async () => ({ ableton: await ableton.isRunning() }));
   ipcMain.handle('pick-image', async () => {
     const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Bilder', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }] });
@@ -381,6 +420,7 @@ app.whenReady().then(() => {
 
   createWindow();
   applyWindowSettings();
+  if (settings.windowMode && settings.windowMode !== 'full') win.once('ready-to-show', () => applyWindowMode(settings.windowMode, false));
   registerHotkeys();
   watchFrontApp();
   // Dev helper: PO_TEST_LOAD=<plugin id> loads it on a new track after startup.

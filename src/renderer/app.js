@@ -329,6 +329,11 @@ function render() {
     ? `${crumbs} · ${shown.length} ${state.assigning ? ' – drücke jetzt eine Taste zum Belegen (Esc = Abbrechen)' : ''}`
     : 'Scanne Plugins …';
 
+  state.lastShown = shown;
+  if (state.windowMode === 'sidecar' || state.windowMode === 'mini') {
+    renderSide(shown);
+    return;
+  }
   if (state.view === 'categories' && !state.category && !state.query && !state.showHidden) {
     renderCategoryTiles(shown);
   } else if (state.view === 'vendors' && !state.vendor && !state.query) {
@@ -690,9 +695,20 @@ document.addEventListener('keydown', (e) => {
   if (p) { e.preventDefault(); load(p, { newTrack: m.newTrack }); }
 });
 
-$('#search').oninput = (e) => { if (document.body.classList.contains('health')) showView('library'); state.query = e.target.value.trim(); render(); };
+$('#search').oninput = (e) => { state.miniSel = 0; if (document.body.classList.contains('health')) showView('library'); state.query = e.target.value.trim(); render(); };
 $('#search').onkeydown = (e) => {
-  if (e.key === 'Enter') { const first = $('#grid .card'); first?.click(); }
+  const side = state.windowMode === 'sidecar' || state.windowMode === 'mini';
+  if (state.windowMode === 'mini' && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    e.preventDefault();
+    state.miniSel = Math.max(0, (state.miniSel || 0) + (e.key === 'ArrowDown' ? 1 : -1));
+    render();
+    document.querySelector('.mini-row.sel')?.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  if (e.key === 'Enter') {
+    if (side) { const it = (state.lastShown || [])[state.windowMode === 'mini' ? state.miniSel || 0 : 0]; if (it) load(it, { newTrack: e.shiftKey }); return; }
+    const first = $('#grid .card'); first?.click();
+  }
 };
 $('#vendorSearch').oninput = (e) => { state.vendorQuery = e.target.value; render(); };
 $('#sort').onchange = (e) => { state.sort = e.target.value; render(); };
@@ -742,6 +758,119 @@ $('#size').oninput = (e) => {
   document.documentElement.style.setProperty('--card-w', `${e.target.value}px`);
   try { localStorage.setItem('cardSize', e.target.value); } catch { /* ignore */ }
 };
+// ---------- window modes: sidecar & mini ----------
+function thumbHtml(it, cls = 'sv-thumb') {
+  const pic = customImg(it) || shotFor(it);
+  const h = hue(it.vendor);
+  if (pic) return `<div class="${cls}"><img loading="lazy" src="${imgUrl(pic)}"></div>`;
+  if (it.icon && !sharedIcons.has(it.icon)) return `<div class="${cls}" style="background:linear-gradient(135deg,hsl(${h} 45% 32%),hsl(${(h + 40) % 360} 50% 20%))"><img class="icon" loading="lazy" src="${imgUrl(it.icon)}"></div>`;
+  return `<div class="${cls}" style="background:linear-gradient(135deg,hsl(${h} 45% 32%),hsl(${(h + 40) % 360} 50% 20%))">${esc(initials(it.name))}</div>`;
+}
+
+function sideCard(it) {
+  const el = document.createElement('div');
+  el.className = 'sv-card';
+  const tag = it.source === 'Stock' ? 'STOCK' : it.source === 'Max' ? 'MAX' : '';
+  el.innerHTML = `${thumbHtml(it)}${tag ? `<span class="sv-tag">${tag}</span>` : ''}<div class="sv-n" title="${esc(it.name)}">${esc(it.name)}</div><div class="sv-v">${esc(it.vendor)}</div>`;
+  el.onclick = (e) => load(it, { newTrack: e.shiftKey });
+  el.oncontextmenu = (e) => { e.preventDefault(); showMenu(e, it); };
+  return el;
+}
+
+function renderSide(shown) {
+  const v = $('#sideView');
+  v.innerHTML = '';
+  if (state.windowMode === 'mini') return renderMini(shown);
+
+  const grid = (list) => { const g = document.createElement('div'); g.className = 'sv-grid'; list.forEach((it) => g.appendChild(sideCard(it))); return g; };
+  if (state.query || state.vendor || state.collection) {
+    const head = document.createElement('div');
+    head.className = 'sv-label';
+    head.textContent = `${shown.length} Treffer`;
+    v.append(head, shown.length ? grid(shown.slice(0, 200)) : Object.assign(document.createElement('div'), { className: 'sv-empty', textContent: 'Nichts gefunden.' }));
+    return;
+  }
+  if (state.category) {
+    const inCat = shown;
+    const back = document.createElement('div');
+    back.className = 'sv-back';
+    back.innerHTML = `<button title="Zurück">‹</button><i class="ci" style="font-style:normal;color:var(--accent)">${CAT_ICONS[state.category] || '•'}</i>${esc(state.category)}${state.sub ? ` › ${esc(state.sub)}` : ''}<span class="sv-count">${inCat.length}</span>`;
+    back.querySelector('button').onclick = () => { if (state.sub) state.sub = null; else state.category = null; render(); };
+    v.appendChild(back);
+    // Group by subcategory, like the category view.
+    const subs = count(inCat, (i) => i.sub);
+    const keys = Object.keys(subs).sort((a, b) => subs[b] - subs[a]);
+    for (const sub of keys) {
+      if (keys.length > 1) {
+        const l = document.createElement('div');
+        l.className = 'sv-label sv-sublink';
+        l.textContent = `${sub} · ${subs[sub]}`;
+        l.style.cursor = 'pointer';
+        l.onclick = () => { state.sub = sub; render(); };
+        v.appendChild(l);
+      }
+      v.appendChild(grid(inCat.filter((i) => i.sub === sub)));
+    }
+    return;
+  }
+  // Overview: one row per category with a horizontal strip of plugins.
+  for (const [cat, n] of sortCounts(count(shown, (i) => i.category))) {
+    const head = document.createElement('div');
+    head.className = 'sv-head';
+    head.innerHTML = `<i class="ci">${CAT_ICONS[cat] || '•'}</i><span class="sv-name">${esc(cat)}</span><span class="sv-count">${n} ›</span>`;
+    head.onclick = () => { state.category = cat; state.sub = null; render(); v.scrollTop = 0; };
+    const strip = document.createElement('div');
+    strip.className = 'sv-strip';
+    // Pictures first, so the strip looks like the plugins.
+    const items = shown.filter((i) => i.category === cat).sort((a, b) => (shotFor(b) || customImg(b) ? 1 : 0) - (shotFor(a) || customImg(a) ? 1 : 0)).slice(0, 14);
+    items.forEach((it) => strip.appendChild(sideCard(it)));
+    v.append(head, strip);
+  }
+}
+
+// Mini: search-first result list, ↑/↓ to choose, Enter to load.
+function renderMini(shown) {
+  const v = $('#sideView');
+  const list = shown.slice(0, 60);
+  state.miniSel = Math.min(state.miniSel || 0, Math.max(0, list.length - 1));
+  if (!state.query) {
+    const hint = document.createElement('div');
+    hint.className = 'mini-hint';
+    hint.textContent = 'Tippen zum Suchen · ↑/↓ wählen · Enter lädt · ⇧Enter auf neuer Spur';
+    v.appendChild(hint);
+  }
+  list.forEach((it, i) => {
+    const row = document.createElement('div');
+    row.className = `mini-row${i === state.miniSel ? ' sel' : ''}`;
+    row.innerHTML = `${thumbHtml(it, 'mt')}<div style="min-width:0"><b>${esc(it.name)}</b><span>${esc(it.vendor)} · ${esc(it.sub && it.sub !== it.category ? it.sub : it.category)}</span></div>`;
+    row.onclick = (e) => load(it, { newTrack: e.shiftKey });
+    row.oncontextmenu = (e) => { e.preventDefault(); showMenu(e, it); };
+    v.appendChild(row);
+  });
+  if (!list.length) v.innerHTML = '<div class="sv-empty">Nichts gefunden.</div>';
+}
+
+function applyModeClass() {
+  const m = state.windowMode || 'full';
+  document.body.classList.toggle('mode-sidecar', m === 'sidecar');
+  document.body.classList.toggle('mode-mini', m === 'mini');
+  document.querySelectorAll('#modeMenu [data-mode]').forEach((d) => d.classList.toggle('on', d.dataset.mode === m));
+  $('#modeBtn').textContent = m === 'sidecar' ? '◧' : m === 'mini' ? '▢' : '▭';
+  if (m !== 'full') showView('library');
+}
+
+async function setMode(m) {
+  state.windowMode = m;
+  state.category = null; state.sub = null;
+  applyModeClass();
+  render();
+  await window.api.setWindowMode(m);
+  if (m === 'mini') $('#search').focus();
+}
+$('#modeBtn').onclick = (e) => { e.stopPropagation(); $('#modeMenu').classList.toggle('hidden'); };
+$('#modeMenu').onclick = (e) => { const d = e.target.closest('[data-mode]'); if (!d) return; $('#modeMenu').classList.add('hidden'); setMode(d.dataset.mode); };
+document.addEventListener('click', (e) => { if (!e.target.closest('.modewrap')) $('#modeMenu').classList.add('hidden'); });
+
 // ---------- settings: window behaviour ----------
 const ACCEL_LABELS = { PageUp: 'Bild↑', PageDown: 'Bild↓', Home: 'Pos1', End: 'Ende', Up: '↑', Down: '↓', Left: '←', Right: '→', Space: 'Leertaste', Delete: '⌦', Command: '⌘', Control: '⌃', Alt: '⌥', Shift: '⇧' };
 const accelLabel = (a) => (a ? a.split('+').map((k) => ACCEL_LABELS[k] || (k.startsWith('num') ? `Num ${k.slice(3)}` : k)).join('') : '–');
@@ -790,6 +919,7 @@ $('#setToggleKey').onclick = () => {
   window.addEventListener('keydown', onKey, true);
 };
 
+window.api.on('window-mode', (m) => { if (m !== state.windowMode) { state.windowMode = m; applyModeClass(); render(); } });
 window.api.on('liveindex', (u) => {
   if (u.error) { toast(u.error, true); }
   if (u.shot) return;
@@ -821,6 +951,8 @@ async function pollDaw() {
   if (!s.liveIndexAvailable) $('#liveIdxBtn').classList.add('hidden');
   $('#appVersion').textContent = `v${s.version}`;
   Object.assign(state, { shots: s.shots, snapshotsAvailable: s.snapshotsAvailable, liveIndexAvailable: s.liveIndexAvailable, library: s.library, settings: s.settings, supportedFormats: s.supportedFormats, platform: s.platform });
+  state.windowMode = s.settings.windowMode || 'full';
+  applyModeClass();
   render();
   renderSettings();
   updateShotsButton();

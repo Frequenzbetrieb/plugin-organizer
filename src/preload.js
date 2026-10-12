@@ -21,5 +21,6 @@ contextBridge.exposeInMainWorld('api', {
   liveIndexStop: () => ipcRenderer.invoke('liveindex-stop'),
   toggleWindow: () => ipcRenderer.invoke('toggle-window'),
   openLink: (key) => ipcRenderer.invoke('open-link', key),
+  setWindowMode: (mode) => ipcRenderer.invoke('window-mode', mode),
   on: (channel, cb) => ipcRenderer.on(channel, (_e, data) => cb(data)),
 });
