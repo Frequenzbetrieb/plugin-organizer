@@ -19,7 +19,7 @@ Der Plugin Organizer zeigt alle installierten Plugins, die Stock-Devices von Abl
 ## Funktionen
 
 - **Bibliothek:** scannt AU, VST, VST3, AAX und CLAP inkl. Shell-Plugins (Waves), dazu Lives Stock-Devices und Max-for-Live-Devices aus User Library und Packs.
-- **Echte Vorschaubilder:** öffnet jedes Plugin unsichtbar und fotografiert die Oberfläche – AU über macOS, VST3 über einen eigenen kleinen Host (Steinberg VST3 SDK). VST2, Stock- und Max-Devices werden auf Wunsch direkt in Live aufgenommen („Live-Index“).
+- **Echte Vorschaubilder:** öffnet jedes Plugin unsichtbar und fotografiert die Oberfläche – AU über macOS, VST3 über einen eigenen kleinen Host (Steinberg VST3 SDK, macOS und Windows). VST2, Stock- und Max-Devices werden auf Wunsch direkt in Live aufgenommen („Live-Index“).
 - **Sortierung:** Effekte / Instrumente / MIDI FX, automatische Kategorien mit Unterkategorien (z. B. Dynamics → Compressor, Limiter, De-esser …), Hersteller-Ansicht, Formate, Favoriten, eigene Sammlungen mit Farben, Mehrfachauswahl zum Umkategorisieren, Plugins ausblenden.
 - **Laden in Ableton Live:** Klick auf eine Karte, ⇧-Klick für eine neue Spur. Der Organizer sucht in Lives Browser exakt das richtige Gerät (Lives eigene Plugin-Namen werden aus Lives Datenbank gelesen).
 - **Tasten-Mapping:** Plugins auf Tasten legen (Layouts mit F-Tasten, Navigationsblock und Ziffernblock, Lives eigene Tasten markiert). Global mit ⌃⌥⌘ + Taste oder – nur solange Live vorne ist – mit der Taste allein. Pro Taste wählbar: auf ausgewählte oder neue Spur laden.
@@ -39,7 +39,7 @@ Der Plugin Organizer zeigt alle installierten Plugins, die Stock-Devices von Abl
 > `xattr -dr com.apple.quarantine "/Applications/Frequenzbetrieb Plugin Organizer.app"` ausführen.
 > Windows: SmartScreen-Hinweis mit „Weitere Informationen → Trotzdem ausführen“ bestätigen.
 
-**Unter Windows** funktionieren bisher Bibliothek, Sortierung, Sammlungen, Health und das Laden in Live per Klick/Taste. Echte Vorschaubilder, der Live-Index und „auf neuer Spur laden“ gibt es vorerst nur auf dem Mac.
+**Unter Windows** funktionieren Bibliothek, Sortierung, Sammlungen, Health, das Laden in Live per Klick/Taste und echte Vorschaubilder für **VST3-Plugins** („Ansichten“). Der Live-Index (Bilder für VST2-, Stock- und Max-Devices) und „auf neuer Spur laden“ gibt es vorerst nur auf dem Mac.
 
 ## Selbst bauen & starten
 
@@ -77,7 +77,7 @@ Lädt jedes Plugin/Device ohne Bild nacheinander in Live, fotografiert es und ma
 | `src/snapshots.js`, `src/health.js` | Vorschaubilder (AU/VST3), Library Health |
 | `src/renderer/` | Oberfläche (HTML/CSS/JS, ohne Framework) |
 | `native/snapshot.swift` | AU-Editor fotografieren |
-| `native/vst3snap/` | Minimaler VST3-Host zum Fotografieren |
+| `native/vst3snap/` | Minimaler VST3-Host zum Fotografieren (`main.mm` macOS, `main_win.cpp` Windows) |
 | `native/livecapture.swift` | Live-Fenster aufnehmen, Geräte erkennen (Vision), Live-Menüs |
 
 Die Daten (Scan-Cache, Bilder, Einstellungen) liegen unter `~/Library/Application Support/Plugin Organizer/`.
