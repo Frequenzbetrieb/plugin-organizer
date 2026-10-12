@@ -8,7 +8,7 @@
     "start": "npm run build:native && electron .",
     "build:native": "node native/build.js",
     "dist:mac": "UNIVERSAL=1 node native/build.js && electron-builder --mac --universal --publish never",
-    "dist:win": "electron-builder --win --x64 --publish never"
+    "dist:win": "node native/build.js && electron-builder --win --x64 --publish never"
   },
   "devDependencies": {
     "electron": "^33.2.0",
@@ -103,7 +103,16 @@
           ]
         }
       ],
-      "artifactName": "Frequenzbetrieb-Plugin-Organizer-Windows-x64.${ext}"
+      "artifactName": "Frequenzbetrieb-Plugin-Organizer-Windows-x64.${ext}",
+      "extraResources": [
+        {
+          "from": "bin",
+          "to": "bin",
+          "filter": [
+            "*.exe"
+          ]
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,

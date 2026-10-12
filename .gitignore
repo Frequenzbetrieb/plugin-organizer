@@ -5,3 +5,4 @@ native/vst3sdk/
 *.log
 .DS_Store
 !build/
+native/vst3snap/build/

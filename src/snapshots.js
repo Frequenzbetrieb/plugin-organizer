@@ -14,13 +14,14 @@ const PARALLEL = 3;
 const groupKey = (p) => `${p.name.toLowerCase()}|${p.vendor.toLowerCase()}`;
 
 function available() {
-  return isMac && (fs.existsSync(BIN.au) || fs.existsSync(BIN.vst3));
+  if (isMac) return fs.existsSync(BIN.au) || fs.existsSync(BIN.vst3);
+  return process.platform === 'win32' && fs.existsSync(BIN.vst3);
 }
 
 // Which capture methods a plugin offers, best first.
 function methods(p) {
   const m = [];
-  if (p.au && fs.existsSync(BIN.au)) m.push({ bin: BIN.au, job: p.au });
+  if (isMac && p.au && fs.existsSync(BIN.au)) m.push({ bin: BIN.au, job: p.au });
   if (p.format === 'VST3' && fs.existsSync(BIN.vst3)) m.push({ bin: BIN.vst3, job: { path: p.path } });
   return m;
 }
@@ -45,6 +46,7 @@ function captureOne(bin, payload, out) {
 
 // Scales a capture down so the library stays light.
 function shrink(file) {
+  if (!isMac) return Promise.resolve(); // Windows: keep the full-size capture
   return new Promise((resolve) => execFile('sips', ['--resampleWidth', '720', file], () => resolve()));
 }
 

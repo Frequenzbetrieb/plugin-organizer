@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, "dev/**"]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
@@ -51,10 +51,34 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Build app
+      - name: Build app (VST3 snapshot host + Electron)
         run: npm run dist:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      # Smoke test: photograph a real, free VST3 plugin (Surge XT) with the Windows host.
+      - name: Test VST3 snapshot host (Surge XT)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/surge-synthesizer/releases-xt/releases/download/1.3.4/surge-xt-win64-1.3.4-pluginsonly.zip -OutFile surge.zip
+          Expand-Archive surge.zip -DestinationPath surge
+          New-Item -ItemType Directory -Force -Path snapshot-test | Out-Null
+          $plugins = Get-ChildItem surge -Recurse | Where-Object { $_.Name -like '*.vst3' -and ($_.PSIsContainer -or $_.Extension -eq '.vst3') } | Where-Object { $_.FullName -notmatch '\\Contents\\' }
+          $plugins | ForEach-Object { Write-Output "found: $($_.FullName)" }
+          $jobs = @($plugins | ForEach-Object { @{ path = $_.FullName; out = (Join-Path (Resolve-Path snapshot-test) ($_.BaseName + '.png')) } })
+          ConvertTo-Json -InputObject $jobs | Set-Content -Encoding utf8NoBOM jobs.json
+          Get-Content jobs.json
+          $proc = Start-Process -FilePath bin/vst3-snapshot.exe -RedirectStandardInput jobs.json -RedirectStandardOutput snapshot-test/result.txt -RedirectStandardError snapshot-test/stderr.txt -PassThru -NoNewWindow
+          if (-not $proc.WaitForExit(120000)) { $proc.Kill(); Write-Output "TIMEOUT" }
+          Get-Content snapshot-test/result.txt
+          Get-ChildItem snapshot-test
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: Windows-VST3-snapshot-test
+          path: snapshot-test/
 
       - uses: actions/upload-artifact@v5
         with:
