@@ -296,12 +296,14 @@ app.whenReady().then(() => {
     snapshotter.enqueue(library.filter((p) => set.has(p.id)), force);
   });
   indexer = new liveindex.LiveIndexer(path.join(dataDir(), 'shots'), shots, (u) => {
+    if (u.error) logError('liveindex-error', u.error);
     win?.webContents.send('liveindex', u);
     updateMonitor(u);
     if (u.shot) win?.webContents.send('snapshots', { shot: u.shot });
     clearTimeout(saveShotsTimer);
     saveShotsTimer = setTimeout(() => writeJson(shotsFile(), shots), 1000);
   });
+  indexer.log = (kind, msg) => logError(kind, msg);
   ipcMain.handle('liveindex-start', async (_e, onlyMissing = true) => {
     if (!liveindex.available()) return { ok: false, error: 'Nur auf macOS verfügbar.' };
     if (!(await ableton.isRunning())) return { ok: false, error: 'Starte zuerst Ableton Live.' };

@@ -66,7 +66,7 @@ class LiveIndexer {
     if (!this.running) this.loop();
   }
 
-  stop() { this.queue = []; }
+  stop() { this.stopReason = 'Stopp gedrückt'; this.queue = []; }
 
   progress(current) {
     this.onUpdate({ running: this.running && (this.queue.length > 0 || Boolean(current)), done: this.done, total: this.total, current });
@@ -75,13 +75,16 @@ class LiveIndexer {
   async loop() {
     this.running = true;
     this.main = null;
+    this.stopReason = '';
+    this.log?.('liveindex-start', `${this.queue.length} Einträge`);
     while (this.queue.length) {
       const job = this.queue.shift();
       this.progress(job.plugin.name);
-      if (!(await ableton.isRunning())) { this.queue = []; this.onUpdate({ error: 'Ableton Live läuft nicht mehr – Indexierung gestoppt.' }); break; }
+      if (!(await ableton.isRunning())) { this.stopReason = 'Live läuft nicht mehr'; this.queue = []; this.onUpdate({ error: 'Ableton Live läuft nicht mehr – Indexierung gestoppt.' }); break; }
       let ok = false;
       try { ok = await this.capture(job); } catch { ok = false; }
       if (this.lastUndo && this.lastUndo.startsWith('skipped') && this.lastLoaded) {
+        this.stopReason = `nicht entfernbar: ${job.plugin.name} (${this.lastUndo})`;
         this.queue = [];
         this.onUpdate({ error: `Gestoppt: „${job.plugin.name}“ ließ sich nicht wieder entfernen (${this.lastUndo.slice(9)}). Bitte in Live von der Spur löschen und neu starten.` });
       }
@@ -91,6 +94,7 @@ class LiveIndexer {
       this.onUpdate({ shot: { key: job.key, path: this.store[job.key], name: job.plugin.name } });
     }
     this.running = false;
+    this.log?.('liveindex-end', `${this.done}/${this.total}${this.stopReason ? ` – abgebrochen: ${this.stopReason}` : ''}`);
     this.progress();
   }
 
@@ -117,15 +121,21 @@ class LiveIndexer {
     await ableton.search(query);
     // Poll the result list until the entry shows up (usually well under a second).
     let index = -1;
-    const searchDeadline = Date.now() + 3000;
-    await sleep(200);
-    do {
-      index = await this.resultIndex(main, query, tmpB);
-      if (index < 0) await sleep(150);
-    } while (index < 0 && Date.now() < searchDeadline);
+    // Live can be slow to show results (or miss the typing while busy): wait up to 4 s, then type once more.
+    for (let attempt = 0; attempt < 2 && index < 0; attempt++) {
+      if (attempt > 0) await ableton.search(query);
+      const searchDeadline = Date.now() + 4000;
+      await sleep(attempt ? 600 : 200);
+      do {
+        index = await this.resultIndex(main, query, tmpB);
+        if (index < 0) await sleep(200);
+      } while (index < 0 && Date.now() < searchDeadline);
+    }
     if (index < 0) {
       this.lastUndo = 'not in results';
-      fs.writeFile(path.join(this.dir, 'debug', `${p.name.replace(/[^\w.-]+/g, '_')}-box.json`), JSON.stringify({ notFound: true }), () => {});
+      fs.mkdirSync(path.join(this.dir, 'debug'), { recursive: true });
+      fs.writeFile(path.join(this.dir, 'debug', `${p.name.replace(/[^\w.-]+/g, '_')}-box.json`), JSON.stringify({ notFound: true, query }), () => {});
+      this.log?.('liveindex-notfound', query);
       return false;
     }
     // Read the undo state only now: Live refreshes the entry ~1 s after the previous item's undo.
