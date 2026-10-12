@@ -269,6 +269,16 @@ function createWindow() {
             c.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
             c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: r.left + 60, clientY: r.top + 40 })); }, 400);`);
         await new Promise((r) => setTimeout(r, 1500));
+        if (process.env.PO_MENU === 'sub') {
+          // Real mouse hover: over "Kategorie", then over the third submenu entry.
+          const pt = async (sel) => win.webContents.executeJavaScript(`(() => { const r = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return [Math.round(r.left + 30), Math.round(r.top + r.height / 2)]; })()`);
+          let [x, y] = await pt('#menu > .has-sub');
+          win.webContents.sendInputEvent({ type: 'mouseMove', x, y });
+          await new Promise((r) => setTimeout(r, 300));
+          [x, y] = await pt('#menu > .has-sub > .msubmenu > div:nth-child(3)');
+          win.webContents.sendInputEvent({ type: 'mouseMove', x, y });
+          await new Promise((r) => setTimeout(r, 300));
+        }
       }
       await new Promise((r) => setTimeout(r, 1500));
       fs.writeFileSync(process.env.PO_SCREENSHOT, (await win.capturePage()).toPNG());
