@@ -90,7 +90,7 @@ func diffBox(_ a: CGImage, _ b: CGImage) -> CGRect? {
     var bestRun = (start: 0, end: -1)
     var runStart = -1, gap = 0
     for x in 0...w {
-        let hit = x < w && colFrac[x] > 0.25
+        let hit = x < w && colFrac[x] > 0.12
         if hit {
             if runStart < 0 { runStart = x }
             gap = 0

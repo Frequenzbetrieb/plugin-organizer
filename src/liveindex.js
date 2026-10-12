@@ -60,7 +60,9 @@ class LiveIndexer {
       if (onlyMissing && have && have !== 'failed') continue;
       if (!groups.has(k)) groups.set(k, p);
     }
-    this.queue = [...groups.values()].map((p) => ({ key: groupKey(p), plugin: p }));
+    // Most useful first: stock devices, then Max devices from Ableton packs, own User Library devices last.
+    const rank = (p) => (p.source === 'Stock' ? 0 : p.source === 'Max' && p.vendor === 'User Library' ? 3 : p.source === 'Max' ? 1 : 2);
+    this.queue = [...groups.values()].sort((a, b) => rank(a) - rank(b)).map((p) => ({ key: groupKey(p), plugin: p }));
     this.done = 0;
     this.total = this.queue.length;
     if (!this.running) this.loop();
@@ -134,7 +136,9 @@ class LiveIndexer {
     if (index < 0) {
       this.lastUndo = 'not in results';
       fs.mkdirSync(path.join(this.dir, 'debug'), { recursive: true });
-      fs.writeFile(path.join(this.dir, 'debug', `${p.name.replace(/[^\w.-]+/g, '_')}-box.json`), JSON.stringify({ notFound: true, query }), () => {});
+      const safe = p.name.replace(/[^\w.-]+/g, '_');
+      fs.writeFile(path.join(this.dir, 'debug', `${safe}-box.json`), JSON.stringify({ notFound: true, query }), () => {});
+      fs.rename(tmpB, path.join(this.dir, 'debug', `${safe}-notfound.png`), () => {});
       this.log?.('liveindex-notfound', query);
       return false;
     }
@@ -221,10 +225,11 @@ class LiveIndexer {
     // Row height: smallest typical gap between rows.
     const gaps = rows.slice(1).map((r, i) => r.y - rows[i].y).filter((g) => g > 5).sort((a, b) => a - b);
     const rowH = gaps.length ? gaps[Math.floor(gaps.length / 4)] : 19;
-    const norm = (t) => t.toLowerCase().replace(/\.(amxd|adv|adg)$/, '').replace(/\s+/g, ' ').trim();
+    // Compare letters and digits only: OCR reads "_" as space, drops dots, etc.
+    const norm = (t) => t.toLowerCase().replace(/\.(amxd|adv|adg)$/, '').replace(/[^a-z0-9äöüß]/g, '');
     const want = norm(name);
     // OCR puts the row's little icon in front of the text ("AU", "E", "2"…); allow up to 3 junk characters.
-    const hit = rows.find((r) => { const t = norm(r.text); return t === want || (t.endsWith(want) && t.length - want.length <= 4 && /^\W*\S{0,3}\s/.test(t.slice(0, t.length - want.length + 1))); });
+    const hit = rows.find((r) => { const t = norm(r.text); return t === want || (t.endsWith(want) && t.length - want.length <= 3); });
     if (!hit) return -1;
     this.lastHit = { y: hit.y + hit.h / 2, rowH, x0: header.x, x1: header.x + 260 };
     return Math.round((hit.y - rows[0].y) / rowH);
