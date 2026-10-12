@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <div class="row"><b>In Live indexieren</b><button id="stop">Stopp</button></div>
+  <div class="row"><b>Live-Index</b><span><button id="stop">Stopp</button> <button id="close" title="Stoppen und schließen">✕</button></span></div>
   <div class="bar"><div id="fill"></div></div>
   <div class="row"><span id="count" class="muted">–</span></div>
   <div id="current" class="muted">Starte …</div>
@@ -44,6 +44,8 @@
       }
     });
     $('#stop').onclick = () => window.api.liveIndexStop();
+    $('#close').onclick = () => window.api.monitorClose();
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.api.monitorClose(); });
   </script>
 </body>
 </html>

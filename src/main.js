@@ -46,6 +46,8 @@ const DEFAULT_SETTINGS = {
 };
 
 let win;
+// Send to the main window only while it exists (it may have been closed while work continues).
+const send = (channel, data) => { if (win && !win.isDestroyed()) win.webContents.send(channel, data); };
 let library = [];
 let settings = { ...DEFAULT_SETTINGS };
 let shots = {}; // name|vendor → screenshot path or 'failed'
@@ -82,7 +84,7 @@ function watchFrontApp() {
     if (now !== liveFront) {
       liveFront = now;
       if (!settings.modifier) registerHotkeys();
-      win?.webContents.send('live-front', liveFront);
+      send('live-front', liveFront);
     }
   });
   child.on('exit', () => setTimeout(watchFrontApp, 2000));
@@ -155,20 +157,20 @@ async function loadByIdInner(id, opts = {}) {
     const st = settings.loadStats[k] || { count: 0 };
     settings.loadStats[k] = { count: st.count + 1, last: Date.now() };
     writeJson(settingsFile(), settings);
-    win?.webContents.send('loaded', { name: plugin.name });
+    send('loaded', { name: plugin.name });
     return { ok: true };
   } catch (e) {
     const error = e.message.includes('not allowed') || e.message.includes('1002')
       ? 'Bedienungshilfen-Zugriff fehlt (Systemeinstellungen → Datenschutz → Bedienungshilfen).'
       : e.message;
     logError('load-failed', e.stack || e.message);
-    win?.webContents.send('load-error', { error });
+    send('load-error', { error });
     return { ok: false, error };
   }
 }
 
 async function rescan() {
-  library = livedb.annotate(await scanner.scan((done, total) => win?.webContents.send('scan-progress', { done, total })));
+  library = livedb.annotate(await scanner.scan((done, total) => send('scan-progress', { done, total })));
   writeJson(libraryFile(), library);
   return library;
 }
@@ -181,7 +183,7 @@ function updateMonitor(u) {
     const area = screen.getPrimaryDisplay().workArea;
     monitor = new BrowserWindow({
       width: 300, height: 250, x: area.x + area.width - 316, y: area.y + 16,
-      frame: false, resizable: false, alwaysOnTop: true, focusable: false, skipTaskbar: true,
+      frame: false, resizable: false, alwaysOnTop: true, skipTaskbar: true,
       backgroundColor: '#14151a', webPreferences: { preload: path.join(__dirname, 'preload.js') },
     });
     monitor.setAlwaysOnTop(true, 'screen-saver');
@@ -189,8 +191,8 @@ function updateMonitor(u) {
     monitor.loadFile(path.join(__dirname, 'renderer', 'monitor.html'));
     monitor.on('closed', () => { monitor = null; });
   }
-  if (monitor) monitor.webContents.send('liveindex', u);
-  if (u.running === false && monitor) setTimeout(() => monitor?.close(), 4000);
+  if (monitor && !monitor.isDestroyed()) monitor.webContents.send('liveindex', u);
+  if (u.running === false && monitor) setTimeout(() => { if (monitor && !monitor.isDestroyed()) monitor.close(); }, 4000);
 }
 
 function createWindow() {
@@ -204,6 +206,13 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  // Closing the main window ends the app: stop a running Live-Index and close its monitor too.
+  win.on('closed', () => {
+    win = null;
+    indexer?.stop();
+    if (monitor && !monitor.isDestroyed()) monitor.destroy();
+    app.quit();
+  });
   // Links (homepage, donations, GitHub) open in the default browser, never inside the app.
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (/^https?:/.test(url)) { e.preventDefault(); shell.openExternal(url); } });
@@ -251,7 +260,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    if (!win) return;
+    if (!win || win.isDestroyed()) { createWindow(); return; }
     if (win.isMinimized()) win.restore();
     win.show();
     win.focus();
@@ -276,7 +285,7 @@ app.whenReady().then(() => {
   library = livedb.annotate(readJson(libraryFile(), []));
   shots = readJson(shotsFile(), {});
   snapshotter = new snapshots.Snapshotter(path.join(dataDir(), 'shots'), shots, (u) => {
-    win?.webContents.send('snapshots', u);
+    send('snapshots', u);
     clearTimeout(saveShotsTimer);
     saveShotsTimer = setTimeout(() => writeJson(shotsFile(), shots), 1000);
   });
@@ -297,9 +306,9 @@ app.whenReady().then(() => {
   });
   indexer = new liveindex.LiveIndexer(path.join(dataDir(), 'shots'), shots, (u) => {
     if (u.error) logError('liveindex-error', u.error);
-    win?.webContents.send('liveindex', u);
+    send('liveindex', u);
     updateMonitor(u);
-    if (u.shot) win?.webContents.send('snapshots', { shot: u.shot });
+    if (u.shot) send('snapshots', { shot: u.shot });
     clearTimeout(saveShotsTimer);
     saveShotsTimer = setTimeout(() => writeJson(shotsFile(), shots), 1000);
   });
@@ -327,6 +336,7 @@ app.whenReady().then(() => {
     return { ok: true, total: indexer.total };
   });
   ipcMain.handle('liveindex-stop', () => indexer.stop());
+  ipcMain.handle('monitor-close', () => { indexer.stop(); if (monitor && !monitor.isDestroyed()) monitor.close(); });
   // Re-record single plugins/devices in Live (stock, Max, VST2) – no dialog, just checks.
   ipcMain.handle('liveindex-some', async (_e, ids) => {
     if (!liveindex.available()) return { error: 'Nur auf macOS verfügbar.' };
@@ -341,7 +351,7 @@ app.whenReady().then(() => {
   ipcMain.handle('snapshot-cancel', () => snapshotter.cancel());
   ipcMain.handle('health', async () => {
     const cache = readJson(healthFile(), { sizes: {}, sessions: {} });
-    await health.measure(library, cache.sizes, (done, total) => win?.webContents.send('health-progress', { done, total }));
+    await health.measure(library, cache.sizes, (done, total) => send('health-progress', { done, total }));
     cache.sessions = health.scanSessions(settings.sessionFolders, cache.sessions);
     writeJson(healthFile(), cache);
     return health.report(library, cache.sizes, settings.loadStats, cache.sessions, settings.sessionFolders);

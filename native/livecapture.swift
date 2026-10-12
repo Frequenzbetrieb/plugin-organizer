@@ -206,7 +206,8 @@ func undoLoad(before: String, quick: Bool) -> [String: Any] {
     }
     var inserts = 0
     var t = top
-    for _ in 0..<12 {
+    // Some Max devices write dozens of parameter changes right after loading.
+    for _ in 0..<40 {
         guard let item = undoItem() else { break }
         AXUIElementPerformAction(item, kAXPressAction as CFString)
         steps.append(t)

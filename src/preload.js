@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('api', {
   showInFinder: (p) => ipcRenderer.invoke('show-in-finder', p),
   liveIndexStart: (onlyMissing) => ipcRenderer.invoke('liveindex-start', onlyMissing),
   liveIndexSome: (ids) => ipcRenderer.invoke('liveindex-some', ids),
+  monitorClose: () => ipcRenderer.invoke('monitor-close'),
   liveIndexStop: () => ipcRenderer.invoke('liveindex-stop'),
   toggleWindow: () => ipcRenderer.invoke('toggle-window'),
   openLink: (key) => ipcRenderer.invoke('open-link', key),
