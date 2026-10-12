@@ -123,7 +123,7 @@ function applyWindowMode(mode, remember = true) {
     win.setBounds({ x: Math.round(area.x + (area.width - 420) / 2), y: area.y + Math.round(area.height * 0.15), width: 420, height: 480 }, true);
   } else {
     win.setMinimumSize(900, 600);
-    const b = settings.fullBounds || { width: 1280, height: 860 };
+    const b = settings.fullBounds || { width: 1440, height: 900 };
     win.setBounds({ x: b.x ?? area.x + 40, y: b.y ?? area.y + 40, width: b.width, height: b.height }, true);
   }
   writeJson(settingsFile(), settings);
@@ -223,8 +223,9 @@ function updateMonitor(u) {
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1280,
-    height: 860,
+    // Wide enough that the filter bar (types, source, formats, view) fits in one row.
+    width: Math.min(1440, require('electron').screen.getPrimaryDisplay().workArea.width),
+    height: Math.min(900, require('electron').screen.getPrimaryDisplay().workArea.height),
     minWidth: 900,
     minHeight: 600,
     titleBarStyle: 'hiddenInset',
@@ -428,6 +429,12 @@ app.whenReady().then(() => {
 
   createWindow();
   applyWindowSettings();
+  const area = require('electron').screen.getPrimaryDisplay().workArea;
+  if (!settings.widthBumped) {
+    settings.widthBumped = true;
+    if (settings.fullBounds && settings.fullBounds.width < 1440) settings.fullBounds.width = Math.min(1440, area.width);
+    writeJson(settingsFile(), settings);
+  }
   if (settings.windowMode && settings.windowMode !== 'full') win.once('ready-to-show', () => applyWindowMode(settings.windowMode, false));
   registerHotkeys();
   watchFrontApp();

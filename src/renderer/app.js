@@ -11,7 +11,7 @@ const state = {
   type: 'All', // All | Effect | Instrument | MIDI FX
   source: 'All', // All | Plugin | Stock | Max
   formats: null, // Set of enabled plugin formats
-  view: 'categories', // categories | grid
+  view: 'grid', // categories | vendors | grid – starts in the grid
   category: null,
   sub: null,
   vendor: null,
