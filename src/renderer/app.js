@@ -910,6 +910,7 @@ function renderSettings() {
   $('#setHideAfter').checked = Boolean(st.hideAfterLoad);
   $('#setAutoUpdate').checked = st.autoUpdate !== false;
   $('#setAutoRescan').checked = st.autoRescan !== false;
+  showLiveScript();
   window.api.autostartGet().then((on) => { $('#setAutostart').checked = on; });
   $('#setVersion').textContent = state.version || '';
   $('#setToggleKey').textContent = accelLabel(st.toggleKey);
@@ -933,6 +934,27 @@ $('#hideBtn').onclick = () => window.api.toggleWindow();
 
 // ---------- Updates ----------
 $('#setAutostart').onchange = async (e) => { e.target.checked = await window.api.autostartSet(e.target.checked); };
+// ---------- Live script: installed? selected in Live? ----------
+function liveScriptText(s) {
+  if (!s.folder) return 'Keine User Library von Ableton Live gefunden – ist Live installiert und einmal gestartet worden?';
+  if (!s.installed) return 'Nicht installiert. „Installieren“ kopiert es in deine User Library.';
+  if (s.active) return '✓ Aktiv – Plugins werden direkt über Live geladen (schnell und exakt).';
+  return 'Installiert, aber in Live nicht aktiv. Live neu starten, dann Einstellungen → Link, Tempo & MIDI → Control Surface „Frequenzbetrieb“ wählen (Input/Output: None). Bis dahin lädt die App über die Suche.';
+}
+async function showLiveScript(s) {
+  s = s || await window.api.liveScriptStatus();
+  $('#lsStatus').textContent = liveScriptText(s);
+  $('#lsInstall').classList.toggle('hidden', s.installed);
+  return s;
+}
+$('#lsCheck').onclick = () => { $('#lsStatus').textContent = 'Prüfe …'; showLiveScript(); };
+$('#lsInstall').onclick = async () => showLiveScript(await window.api.liveScriptInstall());
+// Once per start: when Live runs without the script, point to the one-time setup.
+setTimeout(async () => {
+  const live = (await window.api.dawStatus()).ableton;
+  const s = await window.api.liveScriptStatus();
+  if (live && s.installed && !s.active) toast('Tipp: Live-Skript in Live aktivieren (Einstellungen ⚙ → Live-Skript) – Laden wird schneller und genauer.');
+}, 10000);
 $('#setAutoRescan').onchange = async (e) => { await save({ autoRescan: e.target.checked }); renderSettings(); };
 const mb = (n) => `${Math.round(n / 1e6)} MB`;
 $('#backupExport').onclick = async () => {

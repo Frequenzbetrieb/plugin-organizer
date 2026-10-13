@@ -10,6 +10,7 @@ const liveindex = require('./liveindex');
 const livedb = require('./livedb');
 const api = require('./api');
 const updater = require('./updater');
+const livescript = require('./livescript');
 
 // Keep the data folder from before the rename, so pictures, mappings and collections stay.
 // PO_USERDATA (development): separate data folder, so a dev build can run next to the installed app.
@@ -183,7 +184,12 @@ async function loadByIdInner(id, opts = {}) {
     if (sibling) plugin = { ...plugin, liveName: sibling.liveName };
   }
   try {
-    await liveindex.loadExact(plugin, opts);
+    // Preferred: our script inside Live loads through Live's browser API. Fallback: type into Live's search.
+    const viaScript = await livescript.load(plugin, opts);
+    if (!viaScript?.ok) {
+      if (viaScript) logError('script-load', `${plugin.name}: ${viaScript.error}`);
+      await liveindex.loadExact(plugin, opts);
+    }
     if (settings.hideAfterLoad && win?.isFocused()) app.hide();
     const k = health.groupKey(plugin);
     const st = settings.loadStats[k] || { count: 0 };
@@ -469,6 +475,11 @@ app.whenReady().then(() => {
   ipcMain.handle('get-state', () => ({ version: app.getVersion(), links: LINKS, library, settings, shots, snapshotsAvailable: snapshots.available(), liveIndexAvailable: liveindex.available(), platform: process.platform, supportedFormats: ableton.SUPPORTED_FORMATS }));
   ipcMain.handle('rescan', rescan);
   ipcMain.handle('backup-export', () => exportBackup());
+  ipcMain.handle('livescript-status', () => livescript.status());
+  ipcMain.handle('livescript-install', async () => {
+    try { livescript.install(); } catch (e) { logError('livescript-install', e.message); return { ...(await livescript.status()), error: e.message }; }
+    return livescript.status();
+  });
   ipcMain.handle('backup-import', () => importBackup());
   // Updates: check on demand or automatically; install downloads, swaps the app and restarts.
   let update = null;
@@ -623,6 +634,7 @@ app.whenReady().then(() => {
   if (stale) { settings.scannerVersion = SCANNER_VERSION; writeJson(settingsFile(), settings); }
   if (!library.length || stale) rescan().then(() => win.webContents.send('library', library));
   watchPlugins();
+  try { livescript.install(); } catch (e) { logError('livescript-install', e.message); }
 });
 
 app.on('will-quit', () => globalShortcut.unregisterAll());
