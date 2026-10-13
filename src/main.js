@@ -540,7 +540,7 @@ app.whenReady().then(() => {
   const checkUpdate = async (manual) => {
     try {
       update = await updater.check();
-      if (update || manual) send('update', update || { none: true });
+      if (update || manual) send('update', update ? { ...update, manual } : { none: true });
     } catch (e) { if (manual) send('update', { error: e.message }); }
     return update;
   };

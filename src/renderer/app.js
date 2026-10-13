@@ -1031,11 +1031,14 @@ window.api.on('update', (u) => {
   if (u.error) { $('#updateStatus').textContent = `Prüfen fehlgeschlagen: ${u.error}`; return; }
   if (u.none) { $('#updateStatus').textContent = 'Du hast die neueste Version.'; return; }
   $('#updateStatus').textContent = `Version ${u.version} ist verfügbar.`;
+  // "Später" hides this version until a newer one comes out (a manual check always shows it).
+  if (!u.manual && state.settings.updateLater === u.version) return;
   $('#updText').textContent = `Neue Version ${u.version} verfügbar – die App lädt sie herunter, tauscht sich aus und startet neu.`;
+  $('#updbar').dataset.version = u.version;
   $('#updbar').classList.remove('hidden');
 });
 window.api.on('update-progress', (f) => { $('#updText').textContent = `Update wird geladen … ${Math.round(f * 100)} %`; });
-$('#updLater').onclick = () => $('#updbar').classList.add('hidden');
+$('#updLater').onclick = () => { $('#updbar').classList.add('hidden'); save({ updateLater: $('#updbar').dataset.version || '' }); };
 $('#updInstall').onclick = async () => {
   $('#updInstall').disabled = true;
   const r = await window.api.updateInstall();
