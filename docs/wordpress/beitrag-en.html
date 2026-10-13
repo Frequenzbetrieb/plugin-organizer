@@ -7,7 +7,7 @@
 
 <h2>What the Plugin Organizer does</h2>
 
-<p>The Plugin Organizer runs next to Live, not inside it. It isn't a plugin, so it never sits in your signal path and doesn't cost your project any CPU. On first launch it gathers everything on your Mac: AU, VST, VST3, AAX and CLAP, plus Live's own stock devices and your Max for Live devices from the User Library and Packs.</p>
+<p>The Plugin Organizer runs next to Live, not inside it. It isn't a plugin, so it never sits in your signal path and doesn't cost your project any CPU. On first launch it gathers everything on your Mac: AU, VST, VST3, AAX and CLAP, plus Live's own stock devices, your Max for Live devices and all racks and presets from the User Library, Packs and Core Library.</p>
 
 <h3>See what you load</h3>
 
@@ -40,6 +40,18 @@
 
 <p>A key of your choice hides the Organizer and brings it back. If you want, it stays on top all the time or disappears as soon as a plugin is loaded.</p>
 
+<h3>Racks &amp; presets</h3>
+
+<p>Not just plugins: the Organizer also finds your instrument, drum, effect and MIDI racks (.adg) and device presets (.adv) – from the User Library, every installed pack and Live's Core Library. On our machine that was more than 10,000 entries. So they don't bury your plugins, they get their own "Presets" tab, sorted by rack type and device. Presets show the picture of their device, and they load just like a plugin: click, key or Stream Deck.</p>
+
+<h3>Stream Deck: plugins with pictures on the keys</h3>
+
+<p>With the free Stream Deck plugin you put plugins, stock devices or racks right on the keys of your Elgato Stream Deck – with the real picture of their interface. A short press loads onto the selected track, a long press onto a new one. There's also a complete <strong>plugin browser on the deck</strong>: press "Browser öffnen" and page through effects, instruments, MIDI FX, stock, Max, presets, favourites and your collections – category by category, with pictures, without touching the mouse.</p>
+
+<h3>Always up to date, starts with your Mac</h3>
+
+<p>The Organizer checks for a new version at startup and every few hours. One click on "Jetzt aktualisieren" – it downloads the update, replaces itself and restarts. Your library, pictures, keys and collections stay as they are. If you like, it also starts automatically when you log in.</p>
+
 <h3>Library Health: what's eating your disk?</h3>
 
 <p>The Health view shows how much space your plugins take and how much you can get back: plugins that only run under Rosetta, VST2 copies of plugins you already have as VST3, AAX files without Pro Tools, and plugins you never use. It even reads your Live sets and tells you which plugins in them are missing on this machine.</p>
@@ -48,6 +60,9 @@
 
 <p><strong>Plugin Organizer for macOS (Apple Silicon &amp; Intel):</strong><br>
 <a href="https://github.com/Frequenzbetrieb/plugin-organizer/releases/latest/download/Frequenzbetrieb-Plugin-Organizer-macOS-universal.dmg">→ Download now (DMG)</a></p>
+
+<p><strong>Stream Deck plugin (optional):</strong><br>
+<a href="https://github.com/Frequenzbetrieb/plugin-organizer/releases/latest/download/Frequenzbetrieb-Plugin-Organizer.streamDeckPlugin">→ Download</a> and double-click to install.</p>
 
 <p>The Windows version is in the works and will follow later.</p>
 
@@ -66,6 +81,7 @@
 <code>xattr -dr com.apple.quarantine "/Applications/Frequenzbetrieb Plugin Organizer.app"</code></li>
 <li>Launch the app. macOS asks for <strong>Accessibility</strong> (to load into Live) and – only for snapshots taken inside Live – <strong>Screen Recording</strong>. Allow both in System Settings under "Privacy &amp; Security".</li>
 <li>Click "Ansichten" at the top – the Organizer now photographs your plugins. For stock and Max devices: open Live with an empty set and start "Live-Index".</li>
+<li>Done. From now on the Organizer installs new versions itself – the Terminal step is only needed the first time.</li>
 </ol>
 
 <p><em>Note: the app's interface is currently in German.</em></p>

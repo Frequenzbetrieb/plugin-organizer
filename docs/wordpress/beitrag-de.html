@@ -7,7 +7,7 @@
 
 <h2>Was der Plugin Organizer macht</h2>
 
-<p>Der Plugin Organizer läuft neben Live, nicht in Live. Er ist kein Plugin, sitzt also nicht im Signalweg und kostet keine CPU in deinem Projekt. Beim ersten Start sucht er alles zusammen, was auf deinem Mac liegt: AU, VST, VST3, AAX und CLAP, dazu Lives eigene Stock-Devices und deine Max-for-Live-Devices aus User Library und Packs.</p>
+<p>Der Plugin Organizer läuft neben Live, nicht in Live. Er ist kein Plugin, sitzt also nicht im Signalweg und kostet keine CPU in deinem Projekt. Beim ersten Start sucht er alles zusammen, was auf deinem Mac liegt: AU, VST, VST3, AAX und CLAP, dazu Lives eigene Stock-Devices, deine Max-for-Live-Devices sowie alle Racks und Presets aus User Library, Packs und Core Library.</p>
 
 <h3>Du siehst, was du lädst</h3>
 
@@ -40,6 +40,18 @@
 
 <p>Eine frei wählbare Taste blendet den Organizer aus und holt ihn wieder nach vorne. Auf Wunsch bleibt er immer im Vordergrund oder verschwindet automatisch, sobald ein Plugin geladen ist.</p>
 
+<h3>Racks &amp; Presets</h3>
+
+<p>Nicht nur Plugins: Der Organizer findet auch deine Instrument-, Drum-, Effekt- und MIDI-Racks (.adg) und die Device-Presets (.adv) – aus der User Library, allen installierten Packs und Lives Core Library. Bei uns waren das über 10.000 Einträge. Damit sie deine Plugins nicht zuschütten, haben sie einen eigenen Reiter „Presets“, sortiert nach Rack-Art und Device. Presets zeigen das Bild ihres Devices, und geladen wird genauso wie ein Plugin: Klick, Taste oder Stream Deck.</p>
+
+<h3>Stream Deck: Plugins mit Bild auf den Tasten</h3>
+
+<p>Mit dem kostenlosen Stream-Deck-Plugin legst du Plugins, Stock-Devices oder Racks direkt auf die Tasten deines Elgato Stream Deck – mit dem echten Bild der Oberfläche. Kurz drücken lädt auf die ausgewählte Spur, lang drücken auf eine neue. Dazu gibt es einen kompletten <strong>Plugin-Browser auf dem Deck</strong>: Ein Druck auf „Browser öffnen“, und du blätterst dich durch Effekte, Instrumente, MIDI FX, Stock, Max, Presets, Favoriten und deine Sammlungen – Kategorie für Kategorie, mit Bildern, ohne zur Maus zu greifen.</p>
+
+<h3>Immer aktuell, startet mit</h3>
+
+<p>Der Organizer schaut beim Start und alle paar Stunden nach, ob es eine neue Version gibt. Ein Klick auf „Jetzt aktualisieren“ – er lädt sie, tauscht sich aus und startet neu. Deine Bibliothek, Bilder, Tasten und Sammlungen bleiben dabei erhalten. Auf Wunsch startet er außerdem automatisch, sobald du dich am Mac anmeldest.</p>
+
 <h3>Library Health: Was frisst deinen Speicher?</h3>
 
 <p>Der Health-Bereich zeigt dir, wie viel Platz deine Plugins belegen und wie viel du zurückholen kannst: Plugins, die nur noch mit Rosetta laufen, VST2-Kopien von Plugins, die du längst als VST3 hast, AAX-Dateien ohne Pro Tools und Plugins, die du nie benutzt. Er liest sogar deine Live-Sets und sagt dir, welche Plugins darin auf diesem Rechner fehlen.</p>
@@ -48,6 +60,9 @@
 
 <p><strong>Plugin Organizer für macOS (Apple Silicon &amp; Intel):</strong><br>
 <a href="https://github.com/Frequenzbetrieb/plugin-organizer/releases/latest/download/Frequenzbetrieb-Plugin-Organizer-macOS-universal.dmg">→ Jetzt herunterladen (DMG)</a></p>
+
+<p><strong>Stream-Deck-Plugin (optional):</strong><br>
+<a href="https://github.com/Frequenzbetrieb/plugin-organizer/releases/latest/download/Frequenzbetrieb-Plugin-Organizer.streamDeckPlugin">→ Herunterladen</a> und per Doppelklick installieren.</p>
 
 <p>Die Windows-Version ist in Arbeit und folgt später.</p>
 
@@ -66,6 +81,7 @@
 <code>xattr -dr com.apple.quarantine "/Applications/Frequenzbetrieb Plugin Organizer.app"</code></li>
 <li>App starten. macOS fragt nach <strong>Bedienungshilfen</strong> (zum Laden in Live) und – nur für Fotos direkt aus Live – nach <strong>Bildschirmaufnahme</strong>. Beides in den Systemeinstellungen unter „Datenschutz &amp; Sicherheit“ erlauben.</li>
 <li>Oben auf „Ansichten“ klicken – der Organizer fotografiert jetzt deine Plugins. Für Stock- und Max-Devices: Live mit leerem Set öffnen und „Live-Index“ starten.</li>
+<li>Fertig. Neue Versionen installiert der Organizer ab jetzt selbst – der Terminal-Schritt ist nur beim ersten Mal nötig.</li>
 </ol>
 
 <h2>Kostenlos und Open Source</h2>
