@@ -13,7 +13,7 @@ import Live
 from _Framework.ControlSurface import ControlSurface
 
 PORT = 47330
-VERSION = 1
+VERSION = 2
 FORMAT_FOLDERS = {"AU": ("audio units", "au"), "VST": ("vst", "vst2"), "VST3": ("vst3",)}
 
 
@@ -27,6 +27,7 @@ class Organizer(ControlSurface):
     def __init__(self, c_instance):
         ControlSurface.__init__(self, c_instance)
         self._plugins = None  # norm(name) → [(item, folder names)]
+        self._remembered = None  # (track, ids of devices before the load) for "unload"
         self._sock = None
         try:
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -72,6 +73,18 @@ class Organizer(ControlSurface):
         if cmd == "reindex":
             self._plugins = None
             return {"ok": True}
+        if cmd == "unload":
+            # Removes what the last remembered load added (used by the Live-Index after the photo).
+            if not self._remembered:
+                return {"ok": False, "error": "nothing remembered"}
+            track, before = self._remembered
+            self._remembered = None
+            removed = 0
+            for i in range(len(track.devices) - 1, -1, -1):
+                if track.devices[i]._live_ptr not in before:
+                    track.delete_device(i)
+                    removed += 1
+            return {"ok": True, "removed": removed}
         if cmd == "load":
             item = self._find(req)
             if item is None:
@@ -84,6 +97,9 @@ class Organizer(ControlSurface):
                 song.create_audio_track(-1)
             if new_track:
                 song.view.selected_track = song.tracks[len(song.tracks) - 1]
+            if req.get("remember"):
+                track = song.view.selected_track
+                self._remembered = (track, set(d._live_ptr for d in track.devices))
             self.application().browser.load_item(item)
             return {"ok": True, "name": item.name}
         return {"ok": False, "error": "unknown command"}

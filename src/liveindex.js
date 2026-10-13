@@ -7,6 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const ableton = require('./ableton');
 const { hasPicture } = require('./snapshots');
+const livescript = require('./livescript');
 
 const BIN = require('./paths').bin('livecapture');
 const groupKey = (p) => `${p.name.toLowerCase()}|${p.vendor.toLowerCase()}`;
@@ -87,7 +88,9 @@ class LiveIndexer {
     this.running = true;
     this.main = null;
     this.stopReason = '';
-    this.log?.('liveindex-start', `${this.queue.length} Einträge`);
+    // With our script active in Live, loading and removing go through Live's API (no search, no undo).
+    this.useScript = await livescript.current();
+    this.log?.('liveindex-start', `${this.queue.length} Einträge${this.useScript ? ' (Live-Skript)' : ''}`);
     while (this.queue.length) {
       const job = this.queue.shift();
       this.progress(job.plugin.name);
@@ -110,6 +113,79 @@ class LiveIndexer {
   }
 
   async capture(job) {
+    if (this.useScript) {
+      const r = await this.captureViaScript(job);
+      if (r !== null) return r;
+    }
+    return this.captureViaSearch(job);
+  }
+
+  // Fast path: the script loads the device and deletes it again; we only take the pictures.
+  // → true/false, or null when the script can't find the item (then the search path tries).
+  async captureViaScript(job) {
+    const p = job.plugin;
+    const isDevice = p.source === 'Stock' || p.source === 'Max';
+    // Live opens a plugin's own window only when loaded from its browser UI, not via the API → search path.
+    if (!isDevice) return null;
+    fs.mkdirSync(this.dir, { recursive: true });
+    const hash = crypto.createHash('md5').update(job.key).digest('hex');
+    const out = path.join(this.dir, `${hash}-${Date.now()}.png`);
+    const before = await windows();
+    // Device view can be in any big Live window (Session/Arrangement): take a "before" picture of each.
+    const lives = before.filter((w) => w.w > 500 && w.h > 300 && !w.title.includes('/'));
+    const tmp = (w, s) => path.join(this.dir, `.${s}-${hash}-${w.id}.png`);
+    for (const w of lives) await helper(['capture', String(w.id), tmp(w, 'a')]);
+    const r = await livescript.load(p, { remember: true });
+    if (!r) { this.useScript = false; return null; } // script gone (Live restarted?) – search path from now on
+    if (!r.ok) { this.log?.('liveindex-script', `${p.name}: ${r.error}`); return null; }
+    this.lastLoaded = true;
+    this.lastUndo = '';
+    let ok = false;
+    try {
+      if (!isDevice) {
+        const known = new Set(before.map((w) => w.id));
+        let win = null;
+        for (let t = 0; t < 30 && !win; t++) {
+          await sleep(150);
+          win = (await windows()).find((w) => !known.has(w.id) && w.w > 80 && w.h > 60);
+        }
+        if (win) {
+          await sleep(1200); // let the editor draw
+          ok = (await helper(['capture', String(win.id), out]))?.ok === true;
+        }
+      }
+      if (isDevice) {
+        const findBox = async () => {
+          for (const w of lives) {
+            if (!(await helper(['capture', String(w.id), tmp(w, 'b')]))?.ok) continue;
+            const b = await helper(['diffbox', tmp(w, 'a'), tmp(w, 'b')]);
+            if (b?.ok) return { ...b, win: w };
+          }
+          return null;
+        };
+        let box = null;
+        const deadline = Date.now() + (p.source === 'Max' ? 12000 : 5000);
+        await sleep(250);
+        do { box = await findBox(); if (!box) await sleep(200); } while (!box && Date.now() < deadline);
+        if (box && p.source === 'Max') { await sleep(900); box = (await findBox()) || box; }
+        if (box) ok = (await helper(['crop', tmp(box.win, 'b'), String(box.x), String(box.y), String(box.w), String(box.h), out]))?.ok === true;
+        this.lastLoaded = Boolean(box);
+      }
+    } finally {
+      const u = await livescript.request({ cmd: 'unload' }, 5000);
+      if (!u?.ok) this.lastUndo = `skipped: ${u?.error || 'Live-Skript antwortet nicht'}`;
+      for (const w of lives) { fs.rm(tmp(w, 'a'), () => {}); fs.rm(tmp(w, 'b'), () => {}); }
+      await sleep(250); // let Live redraw the emptied device view before the next "before" picture
+    }
+    if (!ok) return false;
+    await shrink(out);
+    const old = this.store[job.key];
+    if (old && old !== 'failed' && old !== out) fs.rm(old, () => {});
+    this.store[job.key] = out;
+    return true;
+  }
+
+  async captureViaSearch(job) {
     fs.mkdirSync(this.dir, { recursive: true });
     const p = job.plugin;
     const isDevice = p.source === 'Stock' || p.source === 'Max';

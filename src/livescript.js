@@ -55,16 +55,23 @@ function request(msg, timeout = 1500) {
   });
 }
 
-// true when Live runs with our script selected as control surface.
-async function active() {
+// Version of the script we ship; Live only picks up a newer one after a restart.
+const VERSION = Number(fs.readFileSync(path.join(SRC, 'organizer.py'), 'utf8').match(/^VERSION = (\d+)/m)?.[1] || 0);
+
+// Version running in Live (0 = script not active).
+async function running() {
   const r = await request({ cmd: 'ping' }, 600);
-  return Boolean(r?.ok);
+  return r?.ok ? r.version || 1 : 0;
 }
+// true when Live runs with our script selected as control surface.
+const active = async () => (await running()) > 0;
+// true when Live runs our current script (needed for the Live-Index's remember/unload).
+const current = async () => (await running()) >= VERSION;
 
 // → { ok } | { ok:false, error:'notfound'|… } | null (script not reachable)
 function load(plugin, opts = {}) {
   const newTrack = opts.newTrack ? (plugin.type === 'Effect' ? 'audio' : 'midi') : '';
-  const base = { cmd: 'load', newTrack, type: plugin.type };
+  const base = { cmd: 'load', newTrack, type: plugin.type, remember: Boolean(opts.remember) };
   if (plugin.source === 'Stock') return request({ ...base, kind: 'stock', name: plugin.name }, 8000);
   if (plugin.source === 'Max' || plugin.source === 'Preset') return request({ ...base, kind: 'file', path: plugin.path }, 8000);
   // The first plugin lookup walks Live's whole plugin list – give it time.
@@ -78,7 +85,8 @@ async function status() {
   const installed = Boolean(dest) && fs.readdirSync(SRC).every((f) => {
     try { return fs.readFileSync(path.join(dest, f)).equals(fs.readFileSync(path.join(SRC, f))); } catch { return false; }
   });
-  return { installed, active: await active(), folder: dest || null };
+  const v = await running();
+  return { installed, active: v > 0, outdated: v > 0 && v < VERSION, folder: dest || null };
 }
 
-module.exports = { install, active, status, load, userLibrary, request };
+module.exports = { install, active, current, status, load, userLibrary, request };

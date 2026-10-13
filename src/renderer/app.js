@@ -938,6 +938,7 @@ $('#setAutostart').onchange = async (e) => { e.target.checked = await window.api
 function liveScriptText(s) {
   if (!s.folder) return 'Keine User Library von Ableton Live gefunden – ist Live installiert und einmal gestartet worden?';
   if (!s.installed) return 'Nicht installiert. „Installieren“ kopiert es in deine User Library.';
+  if (s.outdated) return 'Aktiv, aber Live nutzt noch die alte Fassung des Skripts. Live einmal neu starten, damit die neue geladen wird.';
   if (s.active) return '✓ Aktiv – Plugins werden direkt über Live geladen (schnell und exakt).';
   return 'Installiert, aber in Live nicht aktiv. Live neu starten, dann Einstellungen → Link, Tempo & MIDI → Control Surface „Frequenzbetrieb“ wählen (Input/Output: None). Bis dahin lädt die App über die Suche.';
 }
@@ -981,6 +982,7 @@ setTimeout(async () => {
   const live = (await window.api.dawStatus()).ableton;
   const s = await window.api.liveScriptStatus();
   if (live && !s.active) openLiveScriptGuide();
+  else if (live && s.outdated) toast('Das Live-Skript wurde aktualisiert – Live bei Gelegenheit neu starten, damit es die neue Fassung lädt.');
 }, 6000);
 $('#setAutoRescan').onchange = async (e) => { await save({ autoRescan: e.target.checked }); renderSettings(); };
 const mb = (n) => `${Math.round(n / 1e6)} MB`;
