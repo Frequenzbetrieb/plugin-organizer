@@ -985,6 +985,10 @@ setTimeout(async () => {
   if (live && !s.active) openLiveScriptGuide();
   else if (live && s.outdated) toast('Das Live-Skript wurde aktualisiert – Live bei Gelegenheit neu starten, damit es die neue Fassung lädt.');
 }, 6000);
+$('#factoryReset').onclick = async () => {
+  const r = await window.api.factoryReset();
+  if (r?.error) toast(r.error, true);
+};
 $('#setAutoRescan').onchange = async (e) => { await save({ autoRescan: e.target.checked }); renderSettings(); };
 const mb = (n) => `${Math.round(n / 1e6)} MB`;
 $('#backupExport').onclick = async () => {

@@ -475,6 +475,29 @@ app.whenReady().then(() => {
   ipcMain.handle('get-state', () => ({ version: app.getVersion(), links: LINKS, library, settings, shots, snapshotsAvailable: snapshots.available(), liveIndexAvailable: liveindex.available(), platform: process.platform, supportedFormats: ableton.SUPPORTED_FORMATS }));
   ipcMain.handle('rescan', rescan);
   ipcMain.handle('backup-export', () => exportBackup());
+  // Factory reset: deletes the library, all pictures and settings, then restarts like a fresh install.
+  ipcMain.handle('factory-reset', async () => {
+    const { response } = process.env.PO_TEST_RESET ? { response: 1 } : await dialog.showMessageBox(win, {
+      type: 'warning', buttons: ['Erst sichern, dann zurücksetzen', 'Ohne Sicherung zurücksetzen', 'Abbrechen'], defaultId: 2, cancelId: 2,
+      message: 'Auf Werkseinstellungen zurücksetzen?',
+      detail: 'Gelöscht werden: die Plugin-Liste, alle Plugin-Bilder, eigene Bilder, Tasten, Favoriten, Sammlungen, Kategorien und alle Einstellungen. '
+        + 'Danach startet der Plugin Organizer neu wie nach der ersten Installation.\n\nDeine Plugins selbst und Ableton Live bleiben unberührt. Das lässt sich nicht rückgängig machen – außer mit einer Sicherung.',
+    });
+    if (response === 2) return { ok: false };
+    if (response === 0) {
+      const b = await exportBackup();
+      if (!b.ok) return { ok: false, error: b.error || 'Sicherung abgebrochen – nichts gelöscht.' };
+    }
+    if (loading || indexer?.running) return { ok: false, error: 'Bitte warten, bis Laden/Indexierung fertig ist.' };
+    snapshotter.cancel();
+    if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: false });
+    for (const f of ['library.json', 'settings.json', 'shots.json', 'health.json', 'preset-tags.json', 'error.log', 'shots', 'images', 'icons']) {
+      fs.rmSync(path.join(dataDir(), f), { recursive: true, force: true });
+    }
+    app.relaunch();
+    app.exit(0);
+    return { ok: true };
+  });
   ipcMain.handle('livescript-status', () => livescript.status());
   ipcMain.handle('livescript-install', async () => {
     try { livescript.install(); } catch (e) { logError('livescript-install', e.message); return { ...(await livescript.status()), error: e.message }; }

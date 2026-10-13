@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('api', {
   updateCheck: () => ipcRenderer.invoke('update-check'),
   liveScriptStatus: () => ipcRenderer.invoke('livescript-status'),
   liveScriptInstall: () => ipcRenderer.invoke('livescript-install'),
+  factoryReset: () => ipcRenderer.invoke('factory-reset'),
   backupExport: () => ipcRenderer.invoke('backup-export'),
   backupImport: () => ipcRenderer.invoke('backup-import'),
   autostartGet: () => ipcRenderer.invoke('autostart-get'),

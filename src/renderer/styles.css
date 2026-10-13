@@ -340,3 +340,4 @@ body.mode-sidecar .search-wrap { flex: 1 1 90px; }
 .ls-state.ok { border-left-color: #3ecf6e; color: #3ecf6e; }
 .ls-foot { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 12px; }
 .ls-foot .spacer { flex: 1; }
+.btn.danger { color: #ff6b6b; border-color: #ff6b6b55; }
