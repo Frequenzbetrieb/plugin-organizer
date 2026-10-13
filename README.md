@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Plugin Organizer</h1>
-<p align="center"><b>Plugins finden, sortieren und in Ableton Live laden</b> &middot; macOS (Windows teilweise)<br>
+<p align="center"><b>Plugins finden, sortieren und in Ableton Live laden</b> &middot; macOS · Windows (Beta)<br>
 Ein kostenloses Open-Source-Projekt von <a href="https://www.frequenzbetrieb.de">Frequenzbetrieb n.e.V.</a></p>
 
 <p align="center">
@@ -51,7 +51,7 @@ Der Plugin Organizer zeigt alle installierten Plugins, die Stock-Devices von Abl
 > `xattr -dr com.apple.quarantine "/Applications/Frequenzbetrieb Plugin Organizer.app"` ausführen.
 > Windows: SmartScreen-Hinweis mit „Weitere Informationen → Trotzdem ausführen“ bestätigen.
 
-**Unter Windows** funktionieren Bibliothek, Sortierung, Sammlungen, Health, das Laden in Live per Klick/Taste und echte Vorschaubilder für **VST3-Plugins** („Ansichten“). Der Live-Index (Bilder für VST2-, Stock- und Max-Devices) und „auf neuer Spur laden“ gibt es vorerst nur auf dem Mac.
+**Unter Windows (Beta)** funktionieren Bibliothek, Kategorien, Sammlungen, Racks & Presets, Tasten, Stream Deck, Fernbedienung, Sichern, Updates, Autostart und echte Bilder für **VST3-Plugins**. Laden in Live geht mit aktivem Live-Skript genau und auch auf neuer Spur (ohne Skript nur über die Suche, erster Treffer). Noch nur auf dem Mac: Aufnahme in Live (Bilder für VST2-, Stock- und Max-Devices), Tasten ohne Zusatztaste nur in Live und die Rosetta-Prüfung in Health.
 
 ## Selbst bauen & starten
 

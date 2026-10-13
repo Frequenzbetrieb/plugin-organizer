@@ -624,13 +624,17 @@ app.whenReady().then(() => {
         + 'und lädt anschließend alles, was noch kein Bild hat (VST2, Stock- und Max-Devices), nacheinander in Live.\n\n'
         + (live
           ? '• Öffne in Live ein leeres Set und wähle eine leere MIDI-Spur aus.\n• Lass Live vorne und fass Maus und Tastatur nicht an, sobald Live an der Reihe ist. Stoppen geht jederzeit.\n'
-          : '• Ableton Live ist nicht geöffnet: Es werden nur AU- und VST3-Plugins fotografiert. Für VST2, Stock und Max später Live öffnen und erneut starten.\n')
+          : !liveindex.available()
+            ? '• Unter Windows werden VST3-Plugins fotografiert. Für VST2, Stock und Max gibt es hier noch keine Aufnahme in Live – eigene Bilder gehen per Rechtsklick.\n'
+            : '• Ableton Live ist nicht geöffnet: Es werden nur AU- und VST3-Plugins fotografiert. Für VST2, Stock und Max später Live öffnen und erneut starten.\n')
         + '\nBereits vorhandene Bilder bleiben erhalten.',
       'Plugin Organizer first rescans for plugins, then photographs all AU and VST3 plugins in the background '
         + 'and finally loads everything that still has no picture (VST2, stock and Max devices) into Live, one by one.\n\n'
         + (live
           ? '• Open an empty set in Live and select an empty MIDI track.\n• Keep Live in front and don’t touch mouse or keyboard once Live’s turn comes. You can stop at any time.\n'
-          : '• Ableton Live is not open: only AU and VST3 plugins are photographed. For VST2, stock and Max open Live later and start again.\n')
+          : !liveindex.available()
+            ? '• On Windows, VST3 plugins are photographed. VST2, stock and Max can’t be captured in Live here yet – set your own picture with a right-click.\n'
+            : '• Ableton Live is not open: only AU and VST3 plugins are photographed. For VST2, stock and Max open Live later and start again.\n')
         + '\nExisting pictures are kept.'),
     });
     if (response !== 0) return { ok: false };
