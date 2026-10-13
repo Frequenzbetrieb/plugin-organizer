@@ -26,11 +26,15 @@ function userLibrary() {
   return fs.existsSync(fallback) ? fallback : null;
 }
 
-// Copies the script into the User Library (only when it changed). → target folder or null.
+const versionOf = (file) => { try { return Number(fs.readFileSync(file, 'utf8').match(/^VERSION = (\d+)/m)?.[1] || 0); } catch { return -1; } };
+
+// Copies the script into the User Library when it's missing or older – never over a newer one
+// (e.g. after going back to an older app version). → target folder or null.
 function install() {
   const lib = userLibrary();
   if (!lib) return null;
   const dest = path.join(lib, 'Remote Scripts', NAME);
+  if (versionOf(path.join(dest, 'organizer.py')) > VERSION) return dest;
   fs.mkdirSync(dest, { recursive: true });
   for (const f of fs.readdirSync(SRC)) {
     const data = fs.readFileSync(path.join(SRC, f));
@@ -82,9 +86,8 @@ function load(plugin, opts = {}) {
 async function status() {
   const lib = userLibrary();
   const dest = lib && path.join(lib, 'Remote Scripts', NAME);
-  const installed = Boolean(dest) && fs.readdirSync(SRC).every((f) => {
-    try { return fs.readFileSync(path.join(dest, f)).equals(fs.readFileSync(path.join(SRC, f))); } catch { return false; }
-  });
+  // Installed = our version (or a newer one) is in the User Library.
+  const installed = Boolean(dest) && versionOf(path.join(dest, 'organizer.py')) >= VERSION;
   const v = await running();
   return { installed, active: v > 0, outdated: v > 0 && v < VERSION, folder: dest || null };
 }
