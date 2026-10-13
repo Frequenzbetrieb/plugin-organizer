@@ -127,6 +127,8 @@
       <div class="srow"><span><b>Ein-/Ausblenden-Taste</b><small>Global: blendet die App aus und holt sie wieder nach vorne. Klick ins Feld, dann Taste(n) drücken.</small></span>
         <span class="keyrec"><button class="btn" id="setToggleKey">Bild↑</button><button class="btn small" id="clearToggleKey" title="Keine Taste">✕</button></span></div>
       <label class="srow"><span><b>Nach dem Laden ausblenden</b><small>Sobald ein Plugin in Live geladen ist, verschwindet die App und du bist direkt in Live.</small></span><input type="checkbox" id="setHideAfter"></label>
+      <div class="srow"><span><b>Sprache</b><small>Sprache der App. „Automatisch“ folgt der Systemsprache.</small></span>
+        <select id="setLanguage" class="sel"><option value="auto">Automatisch</option><option value="de">Deutsch</option><option value="en">English</option></select></div>
       <label class="srow"><span><b>Beim Anmelden starten</b><small>Startet den Plugin Organizer automatisch, wenn du dich am Computer anmeldest.</small></span><input type="checkbox" id="setAutostart"></label>
       <div class="srow"><span><b>Live-Skript</b><small id="lsStatus">Prüfe …</small></span>
         <span class="keyrec"><button class="btn" id="lsCheck">Prüfen</button><button class="btn" id="lsGuide">Anleitung</button><button class="btn" id="lsInstall">Installieren</button></span></div>
@@ -158,6 +160,7 @@
   <div id="preview" class="preview hidden"><img></div>
   <div id="toast" class="toast hidden"></div>
 
+  <script src="i18n.js"></script>
   <script src="shotkey.js"></script>
   <script src="keyboard.js"></script>
   <script src="app.js"></script>

@@ -911,6 +911,7 @@ function renderSettings() {
   $('#setHideAfter').checked = Boolean(st.hideAfterLoad);
   $('#setAutoUpdate').checked = st.autoUpdate !== false;
   $('#setAutoRescan').checked = st.autoRescan !== false;
+  $('#setLanguage').value = st.language || 'auto';
   showLiveScript();
   window.api.autostartGet().then((on) => { $('#setAutostart').checked = on; });
   $('#setVersion').textContent = state.version || '';
@@ -985,6 +986,7 @@ setTimeout(async () => {
   if (live && !s.active) openLiveScriptGuide();
   else if (live && s.outdated) toast('Das Live-Skript wurde aktualisiert – Live bei Gelegenheit neu starten, damit es die neue Fassung lädt.');
 }, 6000);
+$('#setLanguage').onchange = async (e) => { await save({ language: e.target.value }); location.reload(); };
 $('#factoryReset').onclick = async () => {
   const r = await window.api.factoryReset();
   if (r?.error) toast(r.error, true);
@@ -1091,6 +1093,7 @@ async function pollDaw() {
 
 (async () => {
   const s = await window.api.getState();
+  window.I18N.setLang(s.lang);
   if (!s.liveIndexAvailable) $('#liveIdxBtn').classList.add('hidden');
   $("#appVersion").textContent = `v${s.version}`;
   state.version = s.version;

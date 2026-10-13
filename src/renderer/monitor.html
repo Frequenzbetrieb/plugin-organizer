@@ -22,7 +22,9 @@
   <div id="current" class="muted">Starte …</div>
   <div class="shot" id="shot"><span class="muted">Noch kein Bild</span></div>
   <div id="last" class="muted"></div>
+  <script src="i18n.js"></script>
   <script>
+    I18N.setLang(new URLSearchParams(location.search).get('lang'));
     const $ = (s) => document.querySelector(s);
     let ok = 0;
     let fail = 0;

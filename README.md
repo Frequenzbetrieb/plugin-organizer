@@ -19,6 +19,9 @@ Der Plugin Organizer zeigt alle installierten Plugins, die Stock-Devices von Abl
 ## Funktionen
 
 - **Bibliothek:** scannt AU, VST, VST3, AAX und CLAP inkl. Shell-Plugins (Waves), dazu Lives Stock-Devices und Max-for-Live-Devices aus User Library und Packs.
+- **Deutsch & Englisch:** Sprache in den Einstellungen wählbar, „Automatisch“ folgt der Systemsprache.
+- **Werkseinstellungen:** Einstellungen → „Zurücksetzen …“ löscht Plugin-Liste, Bilder und Einstellungen (mit Abfrage, optional vorher Sicherung).
+- **Alle Bilder:** ein Knopf scannt neu, fotografiert AU/VST3 im Hintergrund und nimmt den Rest (VST2, Stock, Max) in Live auf.
 - **Live-Skript (empfohlen):** Die App installiert ein kleines Control-Surface-Skript in deine User Library (`Remote Scripts/Frequenzbetrieb`). Einmal in Live aktivieren – Live neu starten, Einstellungen → Link, Tempo & MIDI → Control Surface „Frequenzbetrieb“ (Input/Output: None). Danach lädt die App direkt über Lives Browser-Schnittstelle: in Sekundenbruchteilen, ohne Tippen und Texterkennung. Ohne Skript lädt sie wie bisher über Lives Suche. Eine Anleitung mit Live-Prüfung öffnet sich automatisch (Einstellungen → Live-Skript → Anleitung).
 - **Neue Plugins:** beobachtet die Plugin-Ordner und scannt nach Installationen selbst neu; neue Plugins tragen 14 Tage ein „NEU“, Filter „Nur neue“.
 - **Sichern & übertragen:** Tasten, Favoriten, Sammlungen, Kategorien, eigene und Plugin-Bilder als `.pobackup`-Datei sichern und auf einem anderen Rechner wiederherstellen.

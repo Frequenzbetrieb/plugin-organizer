@@ -41,6 +41,7 @@ const DEFAULT_SETTINGS = {
   alwaysOnTop: false,
   toggleKey: 'PageUp', // global key that hides/shows the app
   hideAfterLoad: false,
+  language: 'auto', // auto | de | en
   autoUpdate: true,
   autoRescan: true, // rescan by itself when plugins are installed or removed
   firstSeen: {}, // plugin id → time it first showed up (after the very first scan) – drives the "Neu" badge // look for a new release on GitHub at start and every 6 hours
@@ -57,6 +58,13 @@ const DEFAULT_SETTINGS = {
 
 let win;
 // Send to the main window only while it exists (it may have been closed while work continues).
+// UI language: setting, or the system language (German → de, everything else → en).
+const lang = () => {
+  const l = settings?.language;
+  if (l === 'de' || l === 'en') return l;
+  return /^de\b/i.test((app.getPreferredSystemLanguages?.() || [app.getLocale()])[0] || '') ? 'de' : 'en';
+};
+const L = (de, en) => (lang() === 'en' ? en : de);
 const send = (channel, data) => { if (win && !win.isDestroyed()) win.webContents.send(channel, data); };
 let library = [];
 let settings = { ...DEFAULT_SETTINGS };
@@ -257,7 +265,7 @@ const tar = (args) => new Promise((r, j) => require('child_process').execFile('t
 
 async function exportBackup(target) {
   const stamp = new Date().toISOString().slice(0, 10);
-  const r = target ? { filePath: target } : await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('documents'), `Plugin-Organizer-Sicherung-${stamp}.pobackup`), filters: [{ name: 'Plugin-Organizer-Sicherung', extensions: ['pobackup'] }] });
+  const r = target ? { filePath: target } : await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('documents'), `${L('Plugin-Organizer-Sicherung', 'Plugin-Organizer-Backup')}-${stamp}.pobackup`), filters: [{ name: L('Plugin-Organizer-Sicherung', 'Plugin Organizer backup'), extensions: ['pobackup'] }] });
   if (r.canceled) return { ok: false };
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'po-backup-'));
   try {
@@ -290,10 +298,12 @@ async function exportBackup(target) {
 }
 
 async function importBackup(source) {
-  const r = source ? { filePaths: [source] } : await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Plugin-Organizer-Sicherung', extensions: ['pobackup'] }] });
+  const r = source ? { filePaths: [source] } : await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: L('Plugin-Organizer-Sicherung', 'Plugin Organizer backup'), extensions: ['pobackup'] }] });
   if (r.canceled) return { ok: false };
-  const ok = source ? { response: 0 } : await dialog.showMessageBox(win, { type: 'question', buttons: ['Wiederherstellen', 'Abbrechen'], defaultId: 0, cancelId: 1,
-    message: 'Sicherung wiederherstellen?', detail: 'Tasten, Favoriten, Sammlungen, Kategorien, eigene Bilder und Einstellungen werden durch die Sicherung ersetzt. Plugin-Bilder aus der Sicherung kommen dazu.' });
+  const ok = source ? { response: 0 } : await dialog.showMessageBox(win, { type: 'question', buttons: [L('Wiederherstellen', 'Restore'), L('Abbrechen', 'Cancel')], defaultId: 0, cancelId: 1,
+    message: L('Sicherung wiederherstellen?', 'Restore backup?'),
+    detail: L('Tasten, Favoriten, Sammlungen, Kategorien, eigene Bilder und Einstellungen werden durch die Sicherung ersetzt. Plugin-Bilder aus der Sicherung kommen dazu.',
+      'Keys, favourites, collections, categories, own pictures and settings are replaced by the backup. Plugin pictures from the backup are added.') });
   if (ok.response !== 0) return { ok: false };
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'po-restore-'));
   try {
@@ -341,7 +351,7 @@ function updateMonitor(u) {
     });
     monitor.setAlwaysOnTop(true, 'screen-saver');
     monitor.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-    monitor.loadFile(path.join(__dirname, 'renderer', 'monitor.html'));
+    monitor.loadFile(path.join(__dirname, 'renderer', 'monitor.html'), { query: { lang: lang() } });
     monitor.on('closed', () => { monitor = null; });
   }
   if (monitor && !monitor.isDestroyed()) monitor.webContents.send('liveindex', u);
@@ -375,7 +385,11 @@ function createWindow() {
     setTimeout(async () => {
       await win.webContents.executeJavaScript(process.env.PO_VIEW === 'health' ? "document.querySelector('#tabHealth').click()" : "document.querySelector('main').scrollTop = 0");
       if (process.env.PO_VIEW === 'health') await new Promise((r) => setTimeout(r, 12000));
-      if (process.env.PO_JS) { await win.webContents.executeJavaScript(process.env.PO_JS); await new Promise((r) => setTimeout(r, 1500)); }
+      if (process.env.PO_JS) {
+        const r = await win.webContents.executeJavaScript(process.env.PO_JS);
+        if (process.env.PO_JS_OUT) fs.writeFileSync(process.env.PO_JS_OUT, String(r));
+        await new Promise((r2) => setTimeout(r2, 1500));
+      }
       if (process.env.PO_SHOWCASE) {
         // Screenshot for the website: effects tab, category overview, from the top.
         await win.webContents.executeJavaScript(`(() => { document.querySelectorAll('#typeTabs button')[1].click();
@@ -472,16 +486,18 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('open-link', (_e, key) => LINKS[key] && shell.openExternal(LINKS[key]));
-  ipcMain.handle('get-state', () => ({ version: app.getVersion(), links: LINKS, library, settings, shots, snapshotsAvailable: snapshots.available(), liveIndexAvailable: liveindex.available(), platform: process.platform, supportedFormats: ableton.SUPPORTED_FORMATS }));
+  ipcMain.handle('get-state', () => ({ lang: lang(), version: app.getVersion(), links: LINKS, library, settings, shots, snapshotsAvailable: snapshots.available(), liveIndexAvailable: liveindex.available(), platform: process.platform, supportedFormats: ableton.SUPPORTED_FORMATS }));
   ipcMain.handle('rescan', rescan);
   ipcMain.handle('backup-export', () => exportBackup());
   // Factory reset: deletes the library, all pictures and settings, then restarts like a fresh install.
   ipcMain.handle('factory-reset', async () => {
     const { response } = process.env.PO_TEST_RESET ? { response: 1 } : await dialog.showMessageBox(win, {
-      type: 'warning', buttons: ['Erst sichern, dann zurücksetzen', 'Ohne Sicherung zurücksetzen', 'Abbrechen'], defaultId: 2, cancelId: 2,
-      message: 'Auf Werkseinstellungen zurücksetzen?',
-      detail: 'Gelöscht werden: die Plugin-Liste, alle Plugin-Bilder, eigene Bilder, Tasten, Favoriten, Sammlungen, Kategorien und alle Einstellungen. '
+      type: 'warning', buttons: [L('Erst sichern, dann zurücksetzen', 'Back up first, then reset'), L('Ohne Sicherung zurücksetzen', 'Reset without backup'), L('Abbrechen', 'Cancel')], defaultId: 2, cancelId: 2,
+      message: L('Auf Werkseinstellungen zurücksetzen?', 'Reset to factory settings?'),
+      detail: L('Gelöscht werden: die Plugin-Liste, alle Plugin-Bilder, eigene Bilder, Tasten, Favoriten, Sammlungen, Kategorien und alle Einstellungen. '
         + 'Danach startet der Plugin Organizer neu wie nach der ersten Installation.\n\nDeine Plugins selbst und Ableton Live bleiben unberührt. Das lässt sich nicht rückgängig machen – außer mit einer Sicherung.',
+        'This deletes the plugin list, all plugin pictures, own pictures, keys, favourites, collections, categories and all settings. '
+        + 'Plugin Organizer then restarts like after the first installation.\n\nYour plugins themselves and Ableton Live are not touched. This cannot be undone – except with a backup.'),
     });
     if (response === 2) return { ok: false };
     if (response === 0) {
@@ -586,14 +602,20 @@ app.whenReady().then(() => {
   ipcMain.handle('capture-all', async () => {
     const live = liveindex.available() && (await ableton.isRunning());
     const { response } = await dialog.showMessageBox(win, {
-      type: 'info', buttons: ['Starten', 'Abbrechen'], defaultId: 0, cancelId: 1,
-      message: 'Alle Bilder aufnehmen',
-      detail: 'Der Plugin Organizer sucht zuerst neu nach Plugins, fotografiert dann alle AU- und VST3-Plugins im Hintergrund '
+      type: 'info', buttons: [L('Starten', 'Start'), L('Abbrechen', 'Cancel')], defaultId: 0, cancelId: 1,
+      message: L('Alle Bilder aufnehmen', 'Take all pictures'),
+      detail: L('Der Plugin Organizer sucht zuerst neu nach Plugins, fotografiert dann alle AU- und VST3-Plugins im Hintergrund '
         + 'und lädt anschließend alles, was noch kein Bild hat (VST2, Stock- und Max-Devices), nacheinander in Live.\n\n'
         + (live
           ? '• Öffne in Live ein leeres Set und wähle eine leere MIDI-Spur aus.\n• Lass Live vorne und fass Maus und Tastatur nicht an, sobald Live an der Reihe ist. Stoppen geht jederzeit.\n'
           : '• Ableton Live ist nicht geöffnet: Es werden nur AU- und VST3-Plugins fotografiert. Für VST2, Stock und Max später Live öffnen und erneut starten.\n')
         + '\nBereits vorhandene Bilder bleiben erhalten.',
+      'Plugin Organizer first rescans for plugins, then photographs all AU and VST3 plugins in the background '
+        + 'and finally loads everything that still has no picture (VST2, stock and Max devices) into Live, one by one.\n\n'
+        + (live
+          ? '• Open an empty set in Live and select an empty MIDI track.\n• Keep Live in front and don’t touch mouse or keyboard once Live’s turn comes. You can stop at any time.\n'
+          : '• Ableton Live is not open: only AU and VST3 plugins are photographed. For VST2, stock and Max open Live later and start again.\n')
+        + '\nExisting pictures are kept.'),
     });
     if (response !== 0) return { ok: false };
     if (live && !(await liveindex.requestAccess())) {
@@ -632,10 +654,12 @@ app.whenReady().then(() => {
   ipcMain.handle('snapshot-cancel', () => snapshotter.cancel());
   ipcMain.handle('health', async () => {
     const cache = readJson(healthFile(), { sizes: {}, sessions: {} });
-    await health.measure(library, cache.sizes, (done, total) => send('health-progress', { done, total }));
+    // Racks/presets aren't installed plugins – Health is about plugin files.
+    const plugins = library.filter((p) => p.source !== 'Preset');
+    await health.measure(plugins, cache.sizes, (done, total) => send('health-progress', { done, total }));
     cache.sessions = health.scanSessions(settings.sessionFolders, cache.sessions);
     writeJson(healthFile(), cache);
-    return health.report(library, cache.sizes, settings.loadStats, cache.sessions, settings.sessionFolders);
+    return health.report(plugins, cache.sizes, settings.loadStats, cache.sessions, settings.sessionFolders);
   });
   ipcMain.handle('add-session-folder', async () => {
     const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
@@ -655,7 +679,7 @@ app.whenReady().then(() => {
   ipcMain.handle('window-mode', (_e, mode) => { applyWindowMode(mode); return settings; });
   ipcMain.handle('daw-status', async () => ({ ableton: await ableton.isRunning() }));
   ipcMain.handle('pick-image', async () => {
-    const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Bilder', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }] });
+    const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: L('Bilder', 'Images'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }] });
     return r.canceled ? null : r.filePaths[0];
   });
   ipcMain.handle('check-accessibility', () =>
