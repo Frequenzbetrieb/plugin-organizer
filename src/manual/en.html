@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manual – Frequenzbetrieb Plugin Organizer</title>
+  <link rel="stylesheet" href="manual.css" />
+</head>
+<body>
+<nav>
+  <img src="../../assets/frequenzbetrieb-logo.png" alt="Frequenzbetrieb">
+  <div class="title">Plugin Organizer · Manual</div>
+  <a href="#start">Getting started</a>
+  <a href="#ueberblick">The main window</a>
+  <a href="#bilder">Pictures for all plugins</a>
+  <a href="#laden">Loading into Live</a>
+  <a class="sub" href="#liveskript">Setting up the Live script</a>
+  <a href="#ordnung">Organising &amp; finding</a>
+  <a class="sub" href="#menu">Right-click menu</a>
+  <a class="sub" href="#sammlungen">Collections &amp; favourites</a>
+  <a class="sub" href="#bewertung">Rating</a>
+  <a href="#ketten">Chains</a>
+  <a href="#tasten">Plugins on keys</a>
+  <a href="#ansichten">Full, Sidecar, Mini</a>
+  <a href="#presets">Racks &amp; Presets</a>
+  <a href="#streamdeck">Stream Deck</a>
+  <a href="#fernbedienung">Phone &amp; tablet</a>
+  <a href="#health">Library Health</a>
+  <a href="#einstellungen">Settings</a>
+  <a class="sub" href="#sichern">Backup &amp; reset</a>
+  <a href="#windows">Windows</a>
+  <a href="#faq">Questions &amp; problems</a>
+</nav>
+<main>
+  <h1>Frequenzbetrieb Plugin Organizer</h1>
+  <p class="lead">All your plugins with a real picture – sorted, searchable and loaded straight into Ableton Live with one click or one key. Free and open source by Frequenzbetrieb n.e.V.</p>
+  <figure><img src="img/en/main.jpg" alt=""><figcaption>The main window: plugins as tiles with pictures, filters and your own order on the left, the keyboard at the bottom.</figcaption></figure>
+
+  <h2 id="start">Getting started</h2>
+  <ol>
+    <li><b>Launch the app.</b> On first launch the Organizer gathers all plugins (AU, VST, VST3, AAX, CLAP), Live's stock devices, Max for Live devices, racks and presets.</li>
+    <li><b>Allow permissions</b> (Mac): <i>Accessibility</i> – so the Organizer may control Live – and <i>Screen Recording</i> – for snapshots taken inside Live. Both in System Settings → Privacy &amp; Security.</li>
+    <li><b>Activate the Live script</b> (recommended) – see <a href="#liveskript">Setting up the Live script</a>. Loading then takes a fraction of a second.</li>
+    <li><b>Take pictures:</b> open an empty set in Live and click <span class="ui">All pictures</span> at the top – see <a href="#bilder">Pictures for all plugins</a>.</li>
+  </ol>
+  <div class="tip"><b>Tip:</b> New versions arrive automatically – a notice with <span class="ui">Update now</span> appears at the top. Your keys, pictures and collections are kept.</div>
+
+  <h2 id="ueberblick">The main window</h2>
+  <figure><img src="img/en/toolbar.jpg" alt=""><figcaption>Toolbar and filter bar</figcaption></figure>
+  <ul>
+    <li><b>Library / Health</b> – switch between your plugins and the <a href="#health">Health area</a>.</li>
+    <li><b>Search</b> – by name, vendor or category. <kbd>/</kbd> jumps into the search field.</li>
+    <li><b>Sort order</b> – name, vendor, category or rating. The slider next to it changes the tile size.</li>
+    <li><b>All pictures</b> – takes pictures of everything that doesn't have one yet.</li>
+    <li><b>Live</b> – green while Ableton Live is running.</li>
+    <li><b>Scan</b> – rescan the plugin folders (also happens automatically when you install something).</li>
+    <li><b>▣</b> – view: full, sidecar or mini. <b>⚙</b> – settings. <b>?</b> – this manual.</li>
+    <li><b>Hide</b> – hides the app; the same key (default <kbd>Page Up</kbd>) brings it back.</li>
+    <li>Below: <b>type</b> (all, effects, instruments, MIDI FX), <b>source</b> (plugins, stock, Max, presets), <b>format</b> (AU, VST, VST3) and on the right the layout <b>Categories / Vendors / Grid</b>.</li>
+  </ul>
+  <figure><img src="img/en/categories.jpg" alt=""><figcaption>“Categories” layout: one tile per category with sample pictures – a click opens it.</figcaption></figure>
+
+  <h2 id="bilder">Pictures for all plugins</h2>
+  <p>One click on <span class="ui">All pictures</span> does everything in two steps:</p>
+  <ol>
+    <li><b>In the background:</b> AU and VST3 plugins are opened invisibly and photographed.</li>
+    <li><b>In Live:</b> everything else – VST2, stock and Max devices – is loaded into Live one by one, photographed and removed again.</li>
+  </ol>
+  <p>While it runs, the button turns into <span class="ui">Stop</span> and shows the progress. Existing pictures are kept; only missing ones are taken.</p>
+  <div class="tip"><b>Important for step 2:</b> open an <b>empty set</b> in Live, select an empty MIDI track and <b>keep Live in front</b>. Don't touch mouse or keyboard while Live's turn is running. In Live's settings → Plug-Ins, “Auto-Open Plug-In Windows” should be on.</div>
+  <p>Below the filters on the left, <span class="ui">▢ No picture</span> shows how many pictures are still missing – tick it to see exactly those plugins. Photograph single plugins with right-click → <span class="ui">Take picture</span>, or pick any image with <span class="ui">Choose own picture …</span>.</p>
+
+  <h2 id="laden">Loading into Live</h2>
+  <ul>
+    <li><b>Click</b> a tile to load the plugin onto the <b>selected track</b> in Live.</li>
+    <li><b><kbd>⇧</kbd>-click</b> creates a <b>new track</b> first – MIDI for instruments, audio for effects.</li>
+    <li>Or: right-click → <span class="ui">Load in Live</span> / <span class="ui">Load on new track</span>, a <a href="#tasten">key</a>, the <a href="#streamdeck">Stream Deck</a> or your <a href="#fernbedienung">phone</a>.</li>
+  </ul>
+
+  <h3 id="liveskript">Setting up the Live script</h3>
+  <p>With the Live script the Organizer talks to Live's browser directly: loading takes a fraction of a second and always hits exactly the right device. The Organizer puts the script into your User Library itself – you only have to activate it in Live <b>once</b>:</p>
+  <ol>
+    <li>Save your set, <b>restart Live</b>.</li>
+    <li>Open Live's settings (<kbd>⌘ ,</kbd>, Windows <kbd>Ctrl ,</kbd>) → tab <b>“Link, Tempo &amp; MIDI”</b>.</li>
+    <li>In a free row under <b>Control Surface</b> choose “<b>Frequenzbetrieb</b>”. Input and output stay at “None”.</li>
+  </ol>
+  <figure class="small"><img src="img/en/guide.jpg" alt=""><figcaption>The guide in the app keeps checking and shows ✓ as soon as the script is active.</figcaption></figure>
+  <p>You can see the status any time under ⚙ Settings → <span class="ui">Live script</span>. Without the script the Organizer loads via Live's search – that works too, just slower.</p>
+
+  <h2 id="ordnung">Organising &amp; finding</h2>
+  <div class="row">
+    <figure class="small"><img src="img/en/sidebar.jpg" alt=""><figcaption>The left sidebar</figcaption></figure>
+    <div style="flex:1;min-width:280px">
+      <p>On the left you find:</p>
+      <ul>
+        <li><b>Filters:</b> merge formats (AU/VST/VST3 of one plugin = one tile), favourites only, mapped only (with a key), new only, no picture, show hidden.</li>
+        <li><b>Own:</b> your <a href="#sammlungen">collections</a>.</li>
+        <li><b>Chains:</b> your <a href="#ketten">chains</a>.</li>
+        <li><b>Category</b> with subcategories (e.g. Dynamics › Compressor) and <b>vendors</b>.</li>
+      </ul>
+      <p>Newly installed plugins are detected automatically and marked <b>NEW</b> for 14 days.</p>
+    </div>
+  </div>
+
+  <h3 id="menu">Right-click menu</h3>
+  <div class="row">
+    <figure class="small"><img src="img/en/menu.jpg" alt=""></figure>
+    <div style="flex:1;min-width:280px">
+      <p>Right-clicking a tile offers everything you can do with a plugin:</p>
+      <ul>
+        <li>Load – onto the selected or a new track</li>
+        <li><b>Rating</b> (1–5 stars), <b>Add to chain</b>, <b>Collections</b></li>
+        <li>Change <b>type</b> and <b>category</b> when the automatic sorting is off</li>
+        <li><b>Picture</b>: retake or choose your own</li>
+        <li><b>Assign key</b>, favourite, <b>Remove from library</b> (stays installed, just hidden)</li>
+      </ul>
+      <p><b>Several at once:</b> select with <kbd>⌘</kbd>-click (Windows <kbd>Ctrl</kbd>-click), then right-click.</p>
+    </div>
+  </div>
+
+  <h3 id="sammlungen">Collections &amp; favourites</h3>
+  <p>Collections are your own folders, e.g. “Mastering” or “Techno leads”. Click <span class="ui">+ New</span> under <b>Own</b>, then drag tiles onto the collection – or use right-click → Collections. A plugin can be in several collections. Right-click a collection to rename it, change its colour, pin or delete it. Mark favourites with right-click → <span class="ui">★ Add to favourites</span>.</p>
+
+  <h3 id="bewertung">Rating</h3>
+  <p>Right-click → <b>Rating</b> gives 1 to 5 stars; they appear on the tile next to the vendor. <span class="ui">Rating</span> in the sort menu at the top brings your favourites to the front.</p>
+
+  <h2 id="ketten">Chains</h2>
+  <p>A chain is several plugins loaded one after another onto <b>one</b> track – for example <i>EQ → compressor → de-esser → reverb</i> for vocals.</p>
+  <div class="row">
+    <figure class="small"><img src="img/en/chain.jpg" alt=""><figcaption>Right-click a chain: load, change the order, rename</figcaption></figure>
+    <div style="flex:1;min-width:280px">
+      <ol>
+        <li><b>Create:</b> select plugins in the order you want with <kbd>⌘</kbd>-click → right-click → <b>Add to chain</b> → <span class="ui">＋ New chain</span> → enter a name.</li>
+        <li><b>Extend:</b> right-click a plugin → Add to chain → pick the chain, or drag the tile onto the chain.</li>
+        <li><b>Load:</b> click the chain on the left; <kbd>⇧</kbd>-click loads it onto a new track.</li>
+        <li><b>Edit:</b> right-click the chain – ↑ moves up, ✕ removes.</li>
+      </ol>
+    </div>
+  </div>
+
+  <h2 id="tasten">Plugins on keys</h2>
+  <figure><img src="img/en/keyboard.jpg" alt=""><figcaption>The on-screen keyboard – layout and modifier at the top, a short guide on the right.</figcaption></figure>
+  <ul>
+    <li><b>Assign:</b> drag a tile onto a key – or right-click → <span class="ui">Assign key …</span> and press the key.</li>
+    <li><b>Use:</b> in Live press <b>modifier + key</b> (default <kbd>⌃⌥⌘</kbd> – Live itself doesn't use it). Under “Global with” choose another combination or “none (only in Live)”: then the key alone works while Live is in front (Mac only).</li>
+    <li><b>On a new track:</b> right-click a mapped key → “Load on new track”.</li>
+    <li>Keys Live uses itself are labelled (“Show Live keys”) so you don't overwrite anything important. Pick the layout (with/without numpad, MacBook, compact) at the top left.</li>
+  </ul>
+
+  <h2 id="ansichten">Full, Sidecar, Mini</h2>
+  <div class="row">
+    <figure class="phone"><img src="img/en/sidecar.jpg" alt=""><figcaption>Sidecar – slim at the screen edge</figcaption></figure>
+    <figure class="phone"><img src="img/en/mini.jpg" alt=""><figcaption>Mini – type, arrows, Enter</figcaption></figure>
+    <div style="flex:1;min-width:240px">
+      <p>Via <b>▣</b> in the toolbar:</p>
+      <ul>
+        <li><b>Full</b> – everything with filters and keyboard.</li>
+        <li><b>Sidecar</b> – a slim bar next to Live, categories as picture strips.</li>
+        <li><b>Mini</b> – a small search window: type, <kbd>↑</kbd>/<kbd>↓</kbd>, <kbd>Enter</kbd> loads, <kbd>⇧</kbd><kbd>Enter</kbd> on a new track.</li>
+      </ul>
+      <p>In the settings: <b>Always on top</b> and <b>Hide after loading</b>.</p>
+    </div>
+  </div>
+
+  <h2 id="presets">Racks &amp; presets</h2>
+  <p>Under <b>Source → Presets</b> you find instrument, drum, effect and MIDI racks (.adg) and device presets (.adv) from your User Library, all packs and Live's Core Library – sorted by rack type or device. So the many presets don't bury your plugins, they only appear on this tab. Presets show the picture of their device; they load just like plugins.</p>
+
+  <h2 id="streamdeck">Stream Deck</h2>
+  <div class="row">
+    <figure class="small"><img src="img/en/deck.jpg" alt=""><figcaption>The plugin browser on a 15-key Stream Deck</figcaption></figure>
+    <div style="flex:1;min-width:280px">
+      <ol>
+        <li>Under ⚙ Settings → Stream Deck, <b>download</b> the plugin and double-click to install.</li>
+        <li>In the Elgato software, drag the <b>“Load plugin”</b> action (category Frequenzbetrieb) onto a key and pick a plugin on the right – the key shows its picture.</li>
+        <li>Or the <b>“Open browser”</b> action: one press opens a browser on the deck – 12 keys with pictures, ◀ ▶ on the right to page and ↩ to go back.</li>
+      </ol>
+      <p>A <b>short press</b> loads onto the selected track, a <b>long press</b> (½ s) onto a new one. The Organizer needs to be running.</p>
+    </div>
+  </div>
+
+  <h2 id="fernbedienung">Phone &amp; tablet</h2>
+  <div class="row">
+    <figure class="phone"><img src="img/en/phone.jpg" alt=""></figure>
+    <figure class="phone"><img src="img/en/phone2.jpg" alt=""></figure>
+    <div style="flex:1;min-width:240px">
+      <ol>
+        <li>⚙ Settings → switch on <b>Remote (phone &amp; tablet)</b>.</li>
+        <li>macOS asks once about incoming connections → <b>Allow</b>.</li>
+        <li><b>Scan the QR code</b> with your camera – the plugin browser opens in the web browser.</li>
+      </ol>
+      <p>Tap to load into Live; the <span class="ui">＋ New track</span> switch creates a new track first. No app needed, just the same Wi-Fi. Tip for iPhone/iPad: in Safari “Share → Add to Home Screen”.</p>
+      <p>Access only works with the secret key from the QR code. <span class="ui">Create new code</span> invalidates old links.</p>
+    </div>
+  </div>
+
+  <h2 id="health">Library Health</h2>
+  <figure><img src="img/en/health.jpg" alt=""></figure>
+  <p>The Health area shows how much space your plugins take and what you could reclaim: plugins that only run under Rosetta, VST2 copies of plugins you also have as VST3, plugins you never load. Add the folders with your Live projects under <b>Your sessions</b> – then you see which plugins are missing from your sets, which you use most and which never appear in any set.</p>
+
+  <h2 id="einstellungen">Settings</h2>
+  <div class="row">
+    <figure class="small"><img src="img/en/settings.jpg" alt=""></figure>
+    <div style="flex:1;min-width:280px">
+      <ul>
+        <li><b>Always on top</b>, <b>show/hide key</b>, <b>hide after loading</b></li>
+        <li><b>Language:</b> automatic, Deutsch or English</li>
+        <li><b>Start at login</b></li>
+        <li><b>Live script:</b> status, guide, install</li>
+        <li><b>Remote</b> with QR code</li>
+        <li><b>Find new plugins automatically</b></li>
+        <li><b>Back up &amp; transfer</b>, <b>factory reset</b></li>
+        <li><b>Check for updates automatically</b>, version, Stream Deck, links</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 id="sichern">Backup &amp; reset</h3>
+  <figure class="small"><img src="img/en/settings2.jpg" alt=""></figure>
+  <ul>
+    <li><span class="ui">Back up …</span> writes keys, favourites, collections, chains, ratings, categories, own pictures, all plugin pictures and settings into <b>one file</b> (.pobackup).</li>
+    <li><span class="ui">Restore …</span> brings it back – on another computer, too.</li>
+    <li><span class="ui">Reset …</span> deletes the plugin list, pictures and settings and starts like a fresh install. The Organizer asks first and offers a backup. Your plugins and Live are not touched.</li>
+  </ul>
+
+  <h2 id="windows">Windows</h2>
+  <p>The Windows version is a <b>beta</b>. The installer triggers a SmartScreen warning: “More info” → “Run anyway”. Differences to the Mac:</p>
+  <table>
+    <tr><th>Feature</th><th>Windows</th></tr>
+    <tr><td>Pictures</td><td>VST3 automatically; VST2, stock and Max only with your own picture (no capture inside Live)</td></tr>
+    <tr><td>Loading</td><td>with the Live script as on the Mac; without it only the first search hit – so do activate the script</td></tr>
+    <tr><td>Keys only in Live</td><td>not available – use the global key combination</td></tr>
+    <tr><td>Health</td><td>without the Rosetta check</td></tr>
+    <tr><td>Everything else</td><td>as on the Mac</td></tr>
+  </table>
+
+  <h2 id="faq">Questions &amp; problems</h2>
+  <h3>A plugin doesn't load, or the wrong one loads</h3>
+  <p>Activate the Live script (see above). Check that the plugin shows up in Live's browser under “Plug-Ins” – the Organizer can't load disabled plugins.</p>
+  <h3>A plugin gets no picture</h3>
+  <p>Live doesn't open very old 32-bit or Intel-only plugins on Apple Silicon. Give them your own picture with a right-click or hide them. While pictures are taken in Live, Live must stay in front.</p>
+  <h3>The Live script says “restart Live”</h3>
+  <p>After an update the Organizer sometimes brings a new version of the script. Live only loads it after a restart.</p>
+  <h3>The keys don't work</h3>
+  <p>Plugin Organizer must be allowed under System Settings → Privacy &amp; Security → Accessibility. Also check that “Global hotkeys” below the keyboard is on.</p>
+  <h3>Where do I report bugs?</h3>
+  <p>On <a href="https://github.com/Frequenzbetrieb/plugin-organizer/issues">GitHub</a> or via ⚙ Settings → <span class="ui">Report a bug</span>. Thank you!</p>
+  <p style="margin-top:40px;color:var(--muted);font-size:13px">Frequenzbetrieb Plugin Organizer · free to use under the AGPL-3.0 · <a href="https://www.frequenzbetrieb.de">www.frequenzbetrieb.de</a> · <a href="https://www.frequenzbetrieb.de/spenden/">Donate</a><br>Ableton and Ableton Live are trademarks of Ableton AG; VST is a trademark of Steinberg Media Technologies GmbH.</p>
+</main>
+<script>
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('nav a')];
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) links.forEach((a) => a.classList.toggle('on', a.hash === `#${e.target.id}`)); }), { rootMargin: '-10% 0px -80% 0px' });
+  document.querySelectorAll('h2[id], h3[id]').forEach((h) => io.observe(h));
+</script>
+</body>
+</html>

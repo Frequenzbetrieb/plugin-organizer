@@ -133,6 +133,7 @@
     'Stoppen und schließen': 'Stop and close', 'Starte …': 'Starting …', 'Noch kein Bild': 'No picture yet', 'kein Bild': 'no picture',
     // ---- types (used as words inside other strings) ----
     'Ist eigentlich:': 'Actually:',
+    'Handbuch': 'Manual', 'Bebilderte Anleitung zu allen Funktionen – auch ohne Internet.': 'Illustrated guide to all features – works offline too.', 'Öffnen': 'Open',
     'Bewertung': 'Rating', 'Zu Kette': 'Add to chain', '＋ Neue Kette': '＋ New chain', 'Ketten': 'Chains', 'Neue Kette': 'New chain',
     'Rechtsklick auf Plugins → „Zu Kette“': 'Right-click plugins → “Add to chain”', 'Reihenfolge': 'Order', 'Kette löschen': 'Delete chain',
     'Nach oben': 'Move up', 'Bild': 'Picture', 'Klick lädt, Rechtsklick für Optionen': 'click loads, right-click for options',

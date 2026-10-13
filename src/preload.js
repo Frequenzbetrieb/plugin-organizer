@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('api', {
   liveIndexStop: () => ipcRenderer.invoke('liveindex-stop'),
   toggleWindow: () => ipcRenderer.invoke('toggle-window'),
   openLink: (key) => ipcRenderer.invoke('open-link', key),
+  openManual: (section) => ipcRenderer.invoke('open-manual', section),
   updateCheck: () => ipcRenderer.invoke('update-check'),
   liveScriptStatus: () => ipcRenderer.invoke('livescript-status'),
   liveScriptInstall: () => ipcRenderer.invoke('livescript-install'),

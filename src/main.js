@@ -494,6 +494,15 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('open-link', (_e, key) => LINKS[key] && shell.openExternal(LINKS[key]));
+  // Illustrated manual (src/manual/<lang>.html) in its own window; web links open in the browser.
+  let manualWin = null;
+  ipcMain.handle('open-manual', (_e, section) => {
+    if (manualWin && !manualWin.isDestroyed()) { manualWin.focus(); if (section) manualWin.webContents.executeJavaScript(`location.hash = ${JSON.stringify(section)}`); return; }
+    manualWin = new BrowserWindow({ width: 1180, height: 860, title: L('Handbuch', 'Manual'), backgroundColor: '#14151a', autoHideMenuBar: true });
+    manualWin.loadFile(path.join(__dirname, 'manual', `${lang()}.html`), section ? { hash: section } : undefined);
+    manualWin.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+    manualWin.webContents.on('will-navigate', (e, url) => { if (/^https?:/.test(url)) { e.preventDefault(); shell.openExternal(url); } });
+  });
   ipcMain.handle('get-state', () => ({ lang: lang(), version: app.getVersion(), links: LINKS, library, settings, shots, snapshotsAvailable: snapshots.available(), liveIndexAvailable: liveindex.available(), platform: process.platform, supportedFormats: ableton.SUPPORTED_FORMATS }));
   ipcMain.handle('rescan', rescan);
   ipcMain.handle('backup-export', () => exportBackup());

@@ -2,6 +2,9 @@
 
 Alle Änderungen am Frequenzbetrieb Plugin Organizer. Downloads zu jeder Version: [Releases](https://github.com/Frequenzbetrieb/plugin-organizer/releases).
 
+## [0.10.0] – 2026-10-13
+- **Bebildertes Handbuch** auf Deutsch und Englisch, in der App mitgeliefert: Knopf **?** in der Werkzeugleiste oder Einstellungen → Handbuch. Funktioniert auch ohne Internet.
+
 ## [0.9.1] – 2026-10-13
 - Kontextmenü: Die Knopfreihen (Sammlungen, Bewertung, Ketten) bleiben beim Darüberfahren lesbar.
 

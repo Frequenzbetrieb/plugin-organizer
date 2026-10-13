@@ -73,7 +73,7 @@ app.whenReady().then(async () => {
   fs.mkdirSync(check);
   require('child_process').execFileSync('ditto', ['-x', '-k', path.join(sdp, 'profiles', 'Frequenzbetrieb Browser.streamDeckProfile'), check]);
 
-  const child = spawn(process.execPath, [path.join(sdp, 'bin', 'plugin.js'), '-port', String(wss.address().port), '-pluginUUID', 'PLUGIN', '-registerEvent', 'registerPlugin', '-info', '{}'], { stdio: 'inherit', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } });
+  const child = spawn(process.execPath, [path.join(sdp, 'bin', 'plugin.js'), '-port', String(wss.address().port), '-pluginUUID', 'PLUGIN', '-registerEvent', 'registerPlugin', '-info', JSON.stringify({ application: { language: process.env.SD_LANG || 'en' } })], { stdio: 'inherit', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } });
   const win = new BrowserWindow({ width: 560, height: 360, show: false });
   while (!pluginWs) await sleep(100);
   await sleep(300);

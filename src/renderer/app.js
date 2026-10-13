@@ -1050,6 +1050,9 @@ document.addEventListener('click', (e) => {
   e.preventDefault();
   window.api.openLink(l.dataset.link);
 });
+$('#helpBtn').onclick = () => window.api.openManual();
+$('#setManual').onclick = () => window.api.openManual();
+$('#lsGuide').addEventListener('contextmenu', () => window.api.openManual('liveskript'));
 $('#settingsBtn').onclick = () => { renderSettings(); $('#settingsModal').classList.remove('hidden'); };
 $('#settingsClose').onclick = () => $('#settingsModal').classList.add('hidden');
 $('#settingsModal').onclick = (e) => { if (e.target.id === 'settingsModal') $('#settingsModal').classList.add('hidden'); };
