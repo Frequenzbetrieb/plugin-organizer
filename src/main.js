@@ -361,6 +361,12 @@ app.whenReady().then(() => {
     return update;
   };
   ipcMain.handle('update-check', () => checkUpdate(true));
+  // Start with the computer: the system's login items are the truth, not our settings file.
+  ipcMain.handle('autostart-get', () => app.getLoginItemSettings().openAtLogin);
+  ipcMain.handle('autostart-set', (_e, on) => {
+    if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: Boolean(on) });
+    return app.getLoginItemSettings().openAtLogin;
+  });
   ipcMain.handle('update-install', async () => {
     if (!update) return { ok: false, error: 'Kein Update gefunden.' };
     if (loading || indexer?.running) return { ok: false, error: 'Bitte warten, bis Laden/Indexierung fertig ist.' };

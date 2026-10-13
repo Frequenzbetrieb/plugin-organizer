@@ -902,6 +902,7 @@ function renderSettings() {
   $('#setOnTop').checked = Boolean(st.alwaysOnTop);
   $('#setHideAfter').checked = Boolean(st.hideAfterLoad);
   $('#setAutoUpdate').checked = st.autoUpdate !== false;
+  window.api.autostartGet().then((on) => { $('#setAutostart').checked = on; });
   $('#setVersion').textContent = state.version || '';
   $('#setToggleKey').textContent = accelLabel(st.toggleKey);
   $('#hideKey').textContent = accelLabel(st.toggleKey);
@@ -923,6 +924,7 @@ $('#clearToggleKey').onclick = async () => { await save({ toggleKey: '' }); rend
 $('#hideBtn').onclick = () => window.api.toggleWindow();
 
 // ---------- Updates ----------
+$('#setAutostart').onchange = async (e) => { e.target.checked = await window.api.autostartSet(e.target.checked); };
 $('#setAutoUpdate').onchange = async (e) => { await save({ autoUpdate: e.target.checked }); renderSettings(); };
 $('#updateCheck').onclick = () => { $('#updateStatus').textContent = 'Suche …'; window.api.updateCheck(); };
 window.api.on('update', (u) => {
