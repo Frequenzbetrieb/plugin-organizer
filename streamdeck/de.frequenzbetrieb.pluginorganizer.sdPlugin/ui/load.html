@@ -37,7 +37,7 @@
       <option value="">Alle</option><option value="Effect">Effekte</option><option value="Instrument">Instrumente</option><option value="MIDI FX">MIDI FX</option>
     </select></div>
     <div><div class="lbl">Quelle</div><select id="source">
-      <option value="">Alle</option><option value="Plugin">Plugins</option><option value="Stock">Stock (Ableton)</option><option value="Max">Max for Live</option>
+      <option value="">Alle</option><option value="Plugin">Plugins</option><option value="Stock">Stock (Ableton)</option><option value="Max">Max for Live</option><option value="Preset">Racks &amp; Presets</option>
     </select></div>
     <div class="full"><div class="lbl">Kategorie</div><select id="category"><option value="">Alle Kategorien</option></select></div>
   </div>
@@ -72,7 +72,7 @@
     }
 
     function showResults(list) {
-      $('#results').innerHTML = list.map((p) => `<div class="item${p.id === settings.pluginId ? ' sel' : ''}" data-id="${esc(p.id)}">${esc(p.name)}${p.source === 'Stock' ? '<span class="tag stock">STOCK</span>' : p.source === 'Max' ? '<span class="tag max">MAX</span>' : ''}<small>${esc(p.vendor)} · ${esc(p.sub && p.sub !== p.category ? p.sub : p.category)}</small></div>`).join('')
+      $('#results').innerHTML = list.map((p) => `<div class="item${p.id === settings.pluginId ? ' sel' : ''}" data-id="${esc(p.id)}">${esc(p.name)}${p.source === 'Stock' ? '<span class="tag stock">STOCK</span>' : p.source === 'Max' ? '<span class="tag max">MAX</span>' : p.source === 'Preset' ? `<span class="tag max">${p.formats?.includes('Rack') ? 'RACK' : 'PRESET'}</span>` : ''}<small>${esc(p.vendor)} · ${esc(p.sub && p.sub !== p.category ? p.sub : p.category)}</small></div>`).join('')
         || '<div class="item"><small>Nichts gefunden.</small></div>';
       $('#results').querySelectorAll('[data-id]').forEach((el) => {
         el.onclick = () => {

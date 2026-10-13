@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execFile } = require('child_process');
+const zlib = require('zlib');
 const { classify, classifyStock } = require('./taxonomy');
 // (SCANNER_VERSION in main.js triggers a rescan when this file learns something new.)
 
@@ -128,7 +129,7 @@ function listBundles(dir, ext, depth = 0) {
   return out;
 }
 
-async function scan(onProgress) {
+async function scan(onProgress, cacheDir) {
   const jobs = [];
   for (const src of SOURCES) {
     for (const dir of src.dirs) {
@@ -150,7 +151,7 @@ async function scan(onProgress) {
   const junk = /AAXHook$|^ASAF |AES3 Audio Decoder|^Apple (AUNetSend|AUNetReceive)|^WaveShell\d/;
   for (let i = results.length - 1; i >= 0; i--) if (junk.test(results[i].name)) results.splice(i, 1);
   normalize(results);
-  results.push(...scanStock(), ...(await scanMax()));
+  results.push(...scanStock(), ...(await scanMax()), ...(await scanPresets(cacheDir)));
   return results.sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -292,6 +293,107 @@ async function scanMax() {
   return out;
 }
 
+// ---------- Racks & presets (.adg / .adv) ----------
+// Live's internal device tag → name shown in the browser (instruments; MIDI tags start with "Midi").
+const INSTRUMENT_TAGS = {
+  Operator: 'Operator', OriginalSimpler: 'Simpler', InstrumentVector: 'Wavetable', MultiSampler: 'Sampler', StringStudio: 'Tension',
+  UltraAnalog: 'Analog', Drift: 'Drift', InstrumentMeld: 'Meld', Collision: 'Collision', LoungeLizard: 'Electric',
+  InstrumentImpulse: 'Impulse', DrumCell: 'Drum Sampler', MxDeviceInstrument: 'Max Instrument',
+};
+const DEVICE_NAMES = {
+  Eq8: 'EQ Eight', FilterEQ3: 'EQ Three', AutoFilter2: 'Auto Filter', AutoPan2: 'Auto Pan', Compressor2: 'Compressor',
+  Chorus2: 'Chorus-Ensemble', PhaserNew: 'Phaser-Flanger', Erosion2: 'Erosion', Redux2: 'Redux', Hybrid: 'Hybrid Reverb',
+  StereoGain: 'Utility', SpectrumAnalyzer: 'Spectrum', Tube: 'Dynamic Tube', Vinyl: 'Vinyl Distortion', ChannelEq: 'Channel EQ',
+  MidiScale: 'Scale', MidiChord: 'Chord', MidiVelocity: 'Velocity', MidiRandom: 'Random', MidiArpeggiator: 'Arpeggiator',
+  MidiNoteLength: 'Note Length', MidiPitcher: 'Pitch', MxDeviceAudioEffect: 'Max Audio Effect', MxDeviceMidiEffect: 'Max MIDI Effect',
+};
+const RACKS = {
+  InstrumentGroupDevice: ['Instrument', 'Instrument Rack'], DrumGroupDevice: ['Instrument', 'Drum Rack'],
+  AudioEffectGroupDevice: ['Effect', 'Audio Effect Rack'], MidiEffectGroupDevice: ['MIDI FX', 'MIDI Effect Rack'],
+};
+
+// Reads the first device tag from a gzipped Live preset without unpacking the whole file.
+function presetTags(file) {
+  try {
+    const fd = fs.openSync(file, 'r');
+    const buf = Buffer.alloc(8192);
+    const n = fs.readSync(fd, buf, 0, buf.length, 0);
+    fs.closeSync(fd);
+    const xml = zlib.gunzipSync(buf.subarray(0, n), { finishFlush: zlib.constants.Z_SYNC_FLUSH }).toString('utf8', 0, 40000);
+    const first = xml.match(/<Ableton[^>]*>\s*<(\w+)/);
+    const group = xml.match(/<(\w+GroupDevice)[\s>]/);
+    return { first: first?.[1], group: group?.[1], drum: xml.includes('<DrumGroupDevice') };
+  } catch { return {}; }
+}
+
+// Racks and device presets from the User Library, the installed Packs and Live's Core Library.
+// Device tags are cached by file date, so a rescan only opens new or changed presets.
+async function scanPresets(cacheDir) {
+  const roots = liveLibraryFolders();
+  const res = liveApps()[0];
+  const coreRoot = res ? path.join(res, 'Core Library') : null;
+  const skipDir = /^(Samples|Clips|Templates|Grooves|Lessons?|Ableton Project Info|Backup)$/i;
+  const walk = (dir, depth) => {
+    let entries = [];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return []; }
+    let files = [];
+    for (const e of entries) {
+      if (e.name.startsWith('.') || skipDir.test(e.name)) continue;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory() && depth < 8) files = files.concat(walk(full, depth + 1));
+      else if (/\.(adg|adv)$/i.test(e.name)) files.push(full);
+    }
+    return files;
+  };
+  // Library folders can be a whole drive: ask Spotlight there, walk only Live's own Core Library.
+  let files = [];
+  if (isMac) {
+    for (const ext of ['.adg', '.adv']) {
+      const found = (await run('mdfind', ['-name', ext])) || '';
+      files = files.concat(found.split('\n').filter((f) => f.toLowerCase().endsWith(ext) && roots.some((r) => f.startsWith(r + path.sep) || f.startsWith(r))));
+    }
+  }
+  if (!files.length) for (const r of roots) files = files.concat(walk(r, 0));
+  files = files.filter((f) => !f.split(path.sep).some((x) => skipDir.test(x)));
+  const coreFiles = coreRoot ? walk(coreRoot, 0) : [];
+
+  const cacheFile = cacheDir ? path.join(cacheDir, 'preset-tags.json') : null;
+  let cache = {};
+  try { cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8')); } catch { /* first scan */ }
+  const fresh = {};
+  const out = [];
+  for (const f of [...coreFiles, ...files]) {
+    let mtime = 0;
+    try { mtime = fs.statSync(f).mtimeMs; } catch { continue; }
+    const tags = cache[f]?.m === mtime ? cache[f] : { m: mtime, ...presetTags(f) };
+    fresh[f] = tags;
+    const { first, group, drum } = tags;
+    if (!first) continue;
+    const rack = f.toLowerCase().endsWith('.adg');
+    const core = coreRoot && f.startsWith(coreRoot);
+    const parts = f.split(path.sep);
+    const pi = parts.findIndex((x) => /packs$/i.test(x));
+    const vendor = core ? 'Ableton' : pi >= 0 && parts[pi + 1] ? parts[pi + 1] : 'User Library';
+    let type; let device;
+    if (rack) {
+      [type, device] = group === 'InstrumentGroupDevice' && drum ? RACKS.DrumGroupDevice : RACKS[group] || RACKS.InstrumentGroupDevice;
+    } else {
+      // Live's own presets sit in Devices/<Type>/<Device>/…, which names the device exactly.
+      const di = parts.lastIndexOf('Devices');
+      const folder = core && di >= 0 ? parts[di + 2] : null;
+      const fromFolder = folder && !/\.adv$|^Legacy$/i.test(folder) ? folder : null;
+      type = INSTRUMENT_TAGS[first] ? 'Instrument' : /^(Midi|MxDeviceMidi)/.test(first) ? 'MIDI FX' : 'Effect';
+      device = fromFolder || INSTRUMENT_TAGS[first] || DEVICE_NAMES[first] || first.replace(/([a-z])([A-Z])/g, '$1 $2');
+    }
+    out.push({
+      id: `Preset:${f}`, name: path.basename(f).replace(/\.(adg|adv)$/i, ''), vendor, format: rack ? 'Rack' : 'Preset', source: 'Preset',
+      path: f, icon: null, type, category: rack ? 'Racks' : 'Presets', sub: device, device,
+    });
+  }
+  if (cacheFile) try { fs.writeFileSync(cacheFile, JSON.stringify(fresh)); } catch { /* read-only */ }
+  return out;
+}
+
 // Converts a bundle's .icns into a cached PNG (macOS only).
 async function iconPng(icns, cacheDir) {
   if (!isMac || !icns) return null;
@@ -303,4 +405,4 @@ async function iconPng(icns, cacheDir) {
   return ok !== null && fs.existsSync(out) ? out : null;
 }
 
-module.exports = { scan, iconPng };
+module.exports = { scanPresets, scan, iconPng };

@@ -9,7 +9,7 @@ const state = {
   supportedFormats: [],
   query: '',
   type: 'All', // All | Effect | Instrument | MIDI FX
-  source: 'All', // All | Plugin | Stock | Max
+  source: 'All', // All | Plugin | Stock | Max | Preset (presets only on their own tab – there are thousands)
   formats: null, // Set of enabled plugin formats
   view: 'grid', // categories | vendors | grid – starts in the grid
   category: null,
@@ -33,11 +33,13 @@ const shotFor = (it) => {
   const v = state.shots[groupKey(it)];
   if (v && v !== 'failed') return v;
   if (looseFor !== state.shots) { looseIdx = window.ShotKey.buildIndex(state.shots); looseFor = state.shots; }
-  return looseIdx.get(window.ShotKey.looseKey(it.name, it.vendor)) || null;
+  return looseIdx.get(window.ShotKey.looseKey(it.name, it.vendor))
+    // A device preset looks like its device: use the stock device's picture.
+    || (it.source === 'Preset' && it.device && !v ? shotFor({ name: it.device, vendor: 'Ableton' }) : null);
 };
 
 const TYPE_LABELS = { All: 'Alle', Effect: 'Effekte', Instrument: 'Instrumente', 'MIDI FX': 'MIDI FX' };
-const SOURCE_LABELS = { All: 'Alle', Plugin: 'Plugins', Stock: 'Stock', Max: 'Max' };
+const SOURCE_LABELS = { All: 'Alle', Plugin: 'Plugins', Stock: 'Stock', Max: 'Max', Preset: 'Presets' };
 const CAT_ICONS = {
   Dynamics: '◧', EQ: '≋', Reverb: '◠', Delay: '⋯', Drive: '▲', Modulation: '∿', Filter: '▽', Pitch: '♪', Spatial: '◉',
   Utility: '⚙', 'Channel Strip': '▥', 'Multi FX': '✣', Unsorted: '◌', Synth: '〰', Sampler: '▤', Drums: '◍', Bass: '♫',
@@ -109,7 +111,7 @@ function renderFilterBar(all) {
   renderSegments($('#typeTabs'), ['All', 'Effect', 'Instrument', 'MIDI FX'], state.type, TYPE_LABELS, (v) => {
     state.type = v; state.category = null; state.sub = null; render();
   }, typeCounts);
-  renderSegments($('#sourceTabs'), ['All', 'Plugin', 'Stock', 'Max'], state.source, SOURCE_LABELS, (v) => { state.source = v; render(); });
+  renderSegments($('#sourceTabs'), ['All', 'Plugin', 'Stock', 'Max', 'Preset'], state.source, SOURCE_LABELS, (v) => { state.source = v; render(); });
   const fmts = state.supportedFormats.filter((f) => !['Stock', 'Max'].includes(f));
   $('#formatChips').innerHTML = fmts.map((f) => `<button class="chipbtn ${state.formats.has(f) ? 'on' : ''}" data-f="${f}">${f}</button>`).join('');
   $('#formatChips').querySelectorAll('button').forEach((b) => {
@@ -308,7 +310,7 @@ function render() {
   if (sharedIcons.libRef !== state.library) { computeSharedIcons(); sharedIcons.libRef = state.library; }
   if (!state.formats) state.formats = new Set(state.supportedFormats);
   const all = items().filter(matches).filter((it) =>
-    (state.source === 'All' || it.source === state.source)
+    (state.source === 'All' ? it.source !== 'Preset' : it.source === state.source)
     && (!$('#onlyFavorites').checked || isFav(it)) && (!$('#onlyMapped').checked || keyFor(it)));
   renderFilterBar(all);
 
@@ -532,7 +534,7 @@ function showMenu(e, clicked) {
   const catNames = Object.keys(cats).sort((a, b) => (a === 'Unsorted') - (b === 'Unsorted') || a.localeCompare(b));
   const otherTypes = ['Effect', 'Instrument', 'MIDI FX'].filter((t) => t !== it.type);
   const hostable = it.formats.some((f) => f === 'AU' || f === 'VST3') && state.snapshotsAvailable;
-  const liveCapturable = !hostable && state.liveIndexAvailable;
+  const liveCapturable = !hostable && state.liveIndexAvailable && it.source !== 'Preset';
 
   m.innerHTML = `
     <div class="mhead">
@@ -790,7 +792,7 @@ function thumbHtml(it, cls = 'sv-thumb') {
 function sideCard(it) {
   const el = document.createElement('div');
   el.className = 'sv-card';
-  const tag = it.source === 'Stock' ? 'STOCK' : it.source === 'Max' ? 'MAX' : '';
+  const tag = it.source === 'Stock' ? 'STOCK' : it.source === 'Max' ? 'MAX' : it.source === 'Preset' ? (it.format === 'Rack' ? 'RACK' : 'PRESET') : '';
   el.innerHTML = `${thumbHtml(it)}${tag ? `<span class="sv-tag">${tag}</span>` : ''}<div class="sv-n" title="${esc(it.name)}">${esc(it.name)}</div><div class="sv-v">${esc(it.vendor)}</div>`;
   el.onclick = (e) => load(it, { newTrack: e.shiftKey });
   el.oncontextmenu = (e) => { e.preventDefault(); showMenu(e, it); };

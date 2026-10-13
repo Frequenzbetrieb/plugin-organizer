@@ -198,7 +198,7 @@ async function loadByIdInner(id, opts = {}) {
 }
 
 async function rescan() {
-  library = livedb.annotate(await scanner.scan((done, total) => send('scan-progress', { done, total })));
+  library = livedb.annotate(await scanner.scan((done, total) => send('scan-progress', { done, total }), dataDir()));
   writeJson(libraryFile(), library);
   return library;
 }
@@ -250,6 +250,7 @@ function createWindow() {
     setTimeout(async () => {
       await win.webContents.executeJavaScript(process.env.PO_VIEW === 'health' ? "document.querySelector('#tabHealth').click()" : "document.querySelector('main').scrollTop = 0");
       if (process.env.PO_VIEW === 'health') await new Promise((r) => setTimeout(r, 12000));
+      if (process.env.PO_JS) { await win.webContents.executeJavaScript(process.env.PO_JS); await new Promise((r) => setTimeout(r, 1500)); }
       if (process.env.PO_SHOWCASE) {
         // Screenshot for the website: effects tab, category overview, from the top.
         await win.webContents.executeJavaScript(`(() => { document.querySelectorAll('#typeTabs button')[1].click();
@@ -464,7 +465,7 @@ app.whenReady().then(() => {
   if (process.env.PO_TEST_LOAD) setTimeout(() => loadById(process.env.PO_TEST_LOAD, { newTrack: true }).then((r) => logError('test-load', JSON.stringify(r))), 5000);
   // Older caches lack AU component ids, which screenshots need.
   // Rescan once when the scanner learned something new (AU ids, types, MIDI Tools, …).
-  const SCANNER_VERSION = 7;
+  const SCANNER_VERSION = 8;
   const stale = library.some((p) => (p.format === 'AU' && !p.au) || !p.type) || settings.scannerVersion !== SCANNER_VERSION;
   if (stale) { settings.scannerVersion = SCANNER_VERSION; writeJson(settingsFile(), settings); }
   if (!library.length || stale) rescan().then(() => win.webContents.send('library', library));

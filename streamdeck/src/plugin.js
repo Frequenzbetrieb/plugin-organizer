@@ -156,6 +156,7 @@ async function loadLevel(device) {
       { kind: 'group', label: 'MIDI FX', params: { type: 'MIDI FX' } },
       { kind: 'group', label: 'Stock', params: { source: 'Stock' } },
       { kind: 'group', label: 'Max', params: { source: 'Max' } },
+      { kind: 'group', label: 'Presets', params: { source: 'Preset' } },
       ...(r.favorites ? [{ kind: 'list', label: '★ Favoriten', params: { favorites: '1' } }] : []),
       ...(r.collections || []).filter((c) => c.count).map((c) => ({ kind: 'list', label: c.name, params: { collection: c.id } })),
     ];
@@ -261,7 +262,7 @@ async function openBrowser(context, device) {
   const b = browser(device);
   if (start !== 'home') {
     b.path.push({ level: 'home', page: 0 });
-    const groups = { effects: { type: 'Effect' }, instruments: { type: 'Instrument' }, midi: { type: 'MIDI FX' }, stock: { source: 'Stock' }, max: { source: 'Max' } };
+    const groups = { effects: { type: 'Effect' }, instruments: { type: 'Instrument' }, midi: { type: 'MIDI FX' }, stock: { source: 'Stock' }, max: { source: 'Max' }, presets: { source: 'Preset' } };
     if (start === 'favorites') Object.assign(b, { level: 'plugins', listParams: { favorites: '1' } });
     else Object.assign(b, { level: 'categories', group: { params: groups[start] || {} } });
   }

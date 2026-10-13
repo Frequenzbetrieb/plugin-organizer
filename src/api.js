@@ -53,7 +53,11 @@ function pictureFor(ctx, e) {
   if (ctx.looseCache?.shots !== shots || ctx.looseCache.size !== Object.keys(shots).length) {
     ctx.looseCache = { shots, size: Object.keys(shots).length, idx: buildIndex(shots) };
   }
-  return ctx.looseCache.idx.get(looseKey(e.name, e.vendor)) || e.icon || null;
+  const loose = ctx.looseCache.idx.get(looseKey(e.name, e.vendor));
+  if (loose) return loose;
+  // A device preset looks like its device.
+  if (e.source === 'Preset' && e.device) return pictureFor(ctx, { ids: [], name: e.device, vendor: 'Ableton' });
+  return e.icon || null;
 }
 
 // Key image: the whole plugin interface, scaled into the upper part of a dark square;
@@ -95,7 +99,8 @@ function start(ctx) {
       if (req.method === 'GET' && url.pathname === '/status') {
         return json(res, 200, { ok: true, app: 'Frequenzbetrieb Plugin Organizer', version: ctx.version, live: await ctx.isLiveRunning(), indexing: ctx.isIndexing() });
       }
-      // Filters: type (Effect|Instrument|MIDI FX), source (Plugin|Stock|Max), category, q (search words).
+      // Filters: type (Effect|Instrument|MIDI FX), source (Plugin|Stock|Max|Preset), category, q (search words).
+      // Presets (thousands) only show up when asked for, or when the user put them into a collection/favourites.
       const filtered = () => {
         const type = url.searchParams.get('type');
         const source = url.searchParams.get('source');
@@ -106,7 +111,7 @@ function start(ctx) {
         const st = ctx.getSettings();
         const coll = collection && (st.collections || []).find((c) => c.id === collection);
         const favs = new Set(st.favorites || []);
-        const list = entries(ctx).filter((e) => (!type || e.type === type) && (!source || e.source === source)
+        const list = entries(ctx).filter((e) => (!type || e.type === type) && (source ? e.source === source : e.source !== 'Preset' || coll || favorites)
           && (!coll || e.ids.some((id) => coll.ids.includes(id)))
           && (!favorites || e.ids.some((id) => favs.has(id)))
           && q.every((t) => `${e.name} ${e.vendor} ${e.category} ${e.sub}`.toLowerCase().includes(t)));
