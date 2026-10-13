@@ -196,10 +196,10 @@ body.health .filterbar { display: none; }
 .menu .mthumb { width: 54px; height: 34px; border-radius: 5px; object-fit: cover; object-position: top; background: var(--card); display: grid; place-items: center; font-weight: 700; color: var(--muted); flex: none; }
 .menu .mcount { background: var(--accent); color: #111; }
 .menu .mchips { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 8px 6px; }
-.menu .mchips:hover { background: none; }
+.menu .mchips:hover { background: none; color: var(--text); }
 .menu .mchip { border: 1px solid var(--line); border-radius: 99px; padding: 2px 9px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
 .menu .mchip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
-.menu .mchip:hover { border-color: var(--muted); }
+.menu .mchip:hover { background: var(--accent); border-color: var(--accent); color: #111; }
 .menu .mchip.on { background: var(--card-hover); border-color: var(--accent); }
 .menu div.mchips, .menu div.mhead { padding-left: 8px; }
 .menu .mrow { position: relative; display: flex; justify-content: space-between; }
