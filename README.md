@@ -19,6 +19,8 @@ Der Plugin Organizer zeigt alle installierten Plugins, die Stock-Devices von Abl
 ## Funktionen
 
 - **Bibliothek:** scannt AU, VST, VST3, AAX und CLAP inkl. Shell-Plugins (Waves), dazu Lives Stock-Devices und Max-for-Live-Devices aus User Library und Packs.
+- **Neue Plugins:** beobachtet die Plugin-Ordner und scannt nach Installationen selbst neu; neue Plugins tragen 14 Tage ein „NEU“, Filter „Nur neue“.
+- **Sichern & übertragen:** Tasten, Favoriten, Sammlungen, Kategorien, eigene und Plugin-Bilder als `.pobackup`-Datei sichern und auf einem anderen Rechner wiederherstellen.
 - **Automatische Updates:** sucht beim Start und alle 6 Stunden auf GitHub nach einer neuen Version; ein Klick lädt sie, tauscht die App aus und startet neu (abschaltbar in den Einstellungen). Auf Wunsch startet die App beim Anmelden am Computer.
 - **Racks & Presets:** Instrument-, Drum-, Effekt- und MIDI-Racks (.adg) sowie Device-Presets (.adv) aus User Library, Packs und Core Library – eigener Quellen-Reiter „Presets“, Presets zeigen das Bild ihres Devices, Laden per Klick/Taste wie bei Plugins.
 - **Echte Vorschaubilder:** öffnet jedes Plugin unsichtbar und fotografiert die Oberfläche – AU über macOS, VST3 über einen eigenen kleinen Host (Steinberg VST3 SDK, macOS und Windows). VST2, Stock- und Max-Devices werden auf Wunsch direkt in Live aufgenommen („Live-Index“).

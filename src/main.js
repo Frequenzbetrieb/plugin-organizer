@@ -249,9 +249,9 @@ const BACKUP_KEYS = ['mappings', 'favorites', 'images', 'hidden', 'categoryOverr
   'autoUpdate', 'autoRescan', 'firstSeen'];
 const tar = (args) => new Promise((r, j) => require('child_process').execFile('tar', args, { maxBuffer: 1e8 }, (e, so, se) => (e ? j(new Error(se || e.message)) : r())));
 
-async function exportBackup() {
+async function exportBackup(target) {
   const stamp = new Date().toISOString().slice(0, 10);
-  const r = await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('documents'), `Plugin-Organizer-Sicherung-${stamp}.pobackup`), filters: [{ name: 'Plugin-Organizer-Sicherung', extensions: ['pobackup'] }] });
+  const r = target ? { filePath: target } : await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('documents'), `Plugin-Organizer-Sicherung-${stamp}.pobackup`), filters: [{ name: 'Plugin-Organizer-Sicherung', extensions: ['pobackup'] }] });
   if (r.canceled) return { ok: false };
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'po-backup-'));
   try {
@@ -265,8 +265,11 @@ async function exportBackup() {
       images[id] = name;
     }
     const shotsDir = path.join(dataDir(), 'shots');
+    // Pictures are stored by file name; only those in our own shots folder travel along.
     const relShots = {};
-    for (const [k, v] of Object.entries(shots)) relShots[k] = v === 'failed' ? v : path.relative(shotsDir, v);
+    for (const [k, v] of Object.entries(shots)) {
+      if (v === 'failed' || fs.existsSync(path.join(shotsDir, path.basename(v)))) relShots[k] = v === 'failed' ? v : path.basename(v);
+    }
     const data = { app: 'Frequenzbetrieb Plugin Organizer', version: app.getVersion(), created: new Date().toISOString(), platform: process.platform,
       settings: Object.fromEntries(BACKUP_KEYS.filter((k) => k in settings).map((k) => [k, settings[k]])), images, shots: relShots };
     fs.writeFileSync(path.join(tmp, 'backup.json'), JSON.stringify(data));
@@ -280,10 +283,10 @@ async function exportBackup() {
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 }
 
-async function importBackup() {
-  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Plugin-Organizer-Sicherung', extensions: ['pobackup'] }] });
+async function importBackup(source) {
+  const r = source ? { filePaths: [source] } : await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Plugin-Organizer-Sicherung', extensions: ['pobackup'] }] });
   if (r.canceled) return { ok: false };
-  const ok = await dialog.showMessageBox(win, { type: 'question', buttons: ['Wiederherstellen', 'Abbrechen'], defaultId: 0, cancelId: 1,
+  const ok = source ? { response: 0 } : await dialog.showMessageBox(win, { type: 'question', buttons: ['Wiederherstellen', 'Abbrechen'], defaultId: 0, cancelId: 1,
     message: 'Sicherung wiederherstellen?', detail: 'Tasten, Favoriten, Sammlungen, Kategorien, eigene Bilder und Einstellungen werden durch die Sicherung ersetzt. Plugin-Bilder aus der Sicherung kommen dazu.' });
   if (ok.response !== 0) return { ok: false };
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'po-restore-'));
@@ -295,7 +298,7 @@ async function importBackup() {
     const shotsDir = path.join(dataDir(), 'shots');
     if (fs.existsSync(path.join(tmp, 'shots'))) fs.cpSync(path.join(tmp, 'shots'), shotsDir, { recursive: true });
     for (const [k, v] of Object.entries(data.shots || {})) {
-      if (v === 'failed') { if (!shots[k]) shots[k] = v; } else shots[k] = path.join(shotsDir, v);
+      if (v === 'failed') { if (!shots[k]) shots[k] = v; } else if (fs.existsSync(path.join(shotsDir, path.basename(v)))) shots[k] = path.join(shotsDir, path.basename(v));
     }
     writeJson(shotsFile(), shots);
     // Own pictures move into the data folder.
@@ -492,6 +495,8 @@ app.whenReady().then(() => {
     } catch (e) { logError('update', e.stack || e.message); return { ok: false, error: e.message }; }
   });
   // Dev helper: PO_TEST_UPDATE=1 checks and installs right away.
+  // Dev helper: PO_TEST_BACKUP=export:<file> or import:<file>.
+  if (process.env.PO_TEST_BACKUP) setTimeout(async () => { const [m, f] = process.env.PO_TEST_BACKUP.split(/:(.*)/); logError('test-backup', JSON.stringify(m === 'export' ? await exportBackup(f) : await importBackup(f))); }, 4000);
   if (process.env.PO_TEST_UPDATE) setTimeout(async () => { if (await checkUpdate(true)) logError('test-update', JSON.stringify(await (async () => { try { await updater.install(update, () => {}); return 'ok'; } catch (e) { return e.message; } })())); else logError('test-update', 'kein Update'); }, 4000);
   if (app.isPackaged) {
     setTimeout(() => settings.autoUpdate && checkUpdate(false), 8000);
