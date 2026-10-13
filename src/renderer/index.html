@@ -105,6 +105,20 @@
 
   <div id="idxbar" class="idxbar hidden"><span id="idxText"></span><span class="spacer"></span><span class="muted">Laden wartet, bis es fertig ist</span><button class="btn small" id="idxStop">Stopp</button></div>
   <div id="updbar" class="idxbar updbar hidden"><span id="updText"></span><span class="spacer"></span><button class="btn small" id="updLater">Später</button><button class="btn small primary" id="updInstall">Jetzt aktualisieren</button></div>
+  <div id="lsModal" class="modal hidden">
+    <div class="modal-box ls-box">
+      <div class="modal-head"><b>Live-Skript einrichten</b><button class="btn small" id="lsClose">Später</button></div>
+      <p class="ls-intro">Mit dem Live-Skript lädt der Plugin Organizer Plugins, Devices, Racks und Presets <b>direkt über Ableton Live</b> – in Sekundenbruchteilen und genau das richtige Gerät. Das Skript ist schon installiert; Live muss es nur einmal aktivieren:</p>
+      <ol class="ls-steps">
+        <li id="lsStep1"><b>Live neu starten.</b> Set speichern, Live beenden und wieder öffnen – Live liest Skripte nur beim Start ein.</li>
+        <li id="lsStep2"><b>Einstellungen öffnen:</b> in Live <span class="kbd">⌘ ,</span> (Windows: <span class="kbd">Strg ,</span>) → Reiter <b>„Link, Tempo &amp; MIDI“</b>.</li>
+        <li id="lsStep3"><b>Control Surface wählen:</b> in einer freien Zeile unter „Control Surface“ <b>„Frequenzbetrieb“</b> auswählen. Input und Output bleiben auf <b>„None“</b>.</li>
+        <li id="lsStep4"><b>Fertig.</b> Einstellungen schließen – hier erscheint dann ✓.</li>
+      </ol>
+      <div class="ls-state" id="lsState">Warte auf Live …</div>
+      <div class="ls-foot"><label class="toggle"><input type="checkbox" id="lsNever"> Nicht mehr automatisch anzeigen</label><span class="spacer"></span><button class="btn" id="lsRecheck">Erneut prüfen</button></div>
+    </div>
+  </div>
   <div id="settingsModal" class="modal hidden">
     <div class="modal-box">
       <div class="modal-head"><b>Einstellungen</b><button class="btn small" id="settingsClose">Fertig</button></div>
@@ -114,7 +128,7 @@
       <label class="srow"><span><b>Nach dem Laden ausblenden</b><small>Sobald ein Plugin in Live geladen ist, verschwindet die App und du bist direkt in Live.</small></span><input type="checkbox" id="setHideAfter"></label>
       <label class="srow"><span><b>Beim Anmelden starten</b><small>Startet den Plugin Organizer automatisch, wenn du dich am Computer anmeldest.</small></span><input type="checkbox" id="setAutostart"></label>
       <div class="srow"><span><b>Live-Skript</b><small id="lsStatus">Prüfe …</small></span>
-        <span class="keyrec"><button class="btn" id="lsCheck">Prüfen</button><button class="btn" id="lsInstall">Installieren</button></span></div>
+        <span class="keyrec"><button class="btn" id="lsCheck">Prüfen</button><button class="btn" id="lsGuide">Anleitung</button><button class="btn" id="lsInstall">Installieren</button></span></div>
       <label class="srow"><span><b>Neue Plugins automatisch finden</b><small>Beobachtet die Plugin-Ordner und scannt von selbst neu, wenn du etwas installierst oder löschst. Neue Plugins bekommen ein „NEU“.</small></span><input type="checkbox" id="setAutoRescan"></label>
       <div class="srow"><span><b>Sichern &amp; übertragen</b><small id="backupStatus">Tasten, Favoriten, Sammlungen, Kategorien, eigene Bilder, Plugin-Bilder und Einstellungen in einer Datei – zum Sichern oder für einen anderen Rechner.</small></span>
         <span class="keyrec"><button class="btn" id="backupExport">Sichern …</button><button class="btn" id="backupImport">Wiederherstellen …</button></span></div>

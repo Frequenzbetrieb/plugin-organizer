@@ -949,12 +949,39 @@ async function showLiveScript(s) {
 }
 $('#lsCheck').onclick = () => { $('#lsStatus').textContent = 'Prüfe …'; showLiveScript(); };
 $('#lsInstall').onclick = async () => showLiveScript(await window.api.liveScriptInstall());
-// Once per start: when Live runs without the script, point to the one-time setup.
+// Setup guide: shows the steps and watches until Live answers, then confirms.
+let lsTimer = null;
+async function lsPoll() {
+  const s = await window.api.liveScriptStatus();
+  const live = (await window.api.dawStatus()).ableton;
+  $('#lsState').className = `ls-state${s.active ? ' ok' : ''}`;
+  $('#lsState').textContent = s.active ? '✓ Live-Skript ist aktiv – Laden läuft jetzt direkt über Live.'
+    : !s.installed ? 'Skript fehlt in der User Library – wird jetzt installiert …'
+    : live ? 'Live läuft, das Skript ist aber noch nicht aktiv (Schritte 1–3).' : 'Live ist nicht geöffnet – bitte Live starten.';
+  if (!s.installed && s.folder !== null) await window.api.liveScriptInstall();
+  $('#lsClose').textContent = s.active ? 'Fertig' : 'Später';
+  showLiveScript(s);
+  if (s.active) { clearInterval(lsTimer); lsTimer = null; }
+}
+function openLiveScriptGuide() {
+  $('#lsNever').checked = Boolean(state.settings.liveScriptGuideOff);
+  $('#lsModal').classList.remove('hidden');
+  lsPoll();
+  clearInterval(lsTimer);
+  lsTimer = setInterval(lsPoll, 3000);
+}
+const closeLsGuide = () => { $('#lsModal').classList.add('hidden'); clearInterval(lsTimer); lsTimer = null; };
+$('#lsClose').onclick = closeLsGuide;
+$('#lsRecheck').onclick = lsPoll;
+$('#lsGuide').onclick = openLiveScriptGuide;
+$('#lsNever').onchange = (e) => save({ liveScriptGuideOff: e.target.checked });
+// Once per start: when Live runs without the script, open the guide (unless switched off).
 setTimeout(async () => {
+  if (state.settings.liveScriptGuideOff) return;
   const live = (await window.api.dawStatus()).ableton;
   const s = await window.api.liveScriptStatus();
-  if (live && s.installed && !s.active) toast('Tipp: Live-Skript in Live aktivieren (Einstellungen ⚙ → Live-Skript) – Laden wird schneller und genauer.');
-}, 10000);
+  if (live && !s.active) openLiveScriptGuide();
+}, 6000);
 $('#setAutoRescan').onchange = async (e) => { await save({ autoRescan: e.target.checked }); renderSettings(); };
 const mb = (n) => `${Math.round(n / 1e6)} MB`;
 $('#backupExport').onclick = async () => {
