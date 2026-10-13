@@ -1055,6 +1055,19 @@ $('#liveIdxBtn').onclick = async () => {
   else if (r?.ok) toast(`${r.total} Plugins/Devices ohne Bild werden in Ableton aufgenommen …`);
 };
 $('#idxStop').onclick = () => window.api.liveIndexStop();
+$('#captureAllBtn').onclick = async () => {
+  const r = await window.api.captureAll();
+  if (r?.error) toast(r.error, true);
+};
+window.api.on('capture-all', (u) => {
+  const b = $('#captureAllBtn');
+  b.disabled = !['done', 'error'].includes(u.phase);
+  b.textContent = { scan: 'Scanne …', host: 'AU/VST3 …', live: 'In Live …' }[u.phase] || 'Alle Bilder';
+  if (u.phase === 'host') toast('Schritt 1/2: AU- und VST3-Plugins werden im Hintergrund fotografiert …');
+  if (u.phase === 'live') toast('Schritt 2/2: VST2, Stock und Max werden in Live aufgenommen – Live vorne lassen.');
+  if (u.phase === 'done') toast(u.live ? 'Alle Bilder aufgenommen.' : 'AU/VST3 fertig. Für VST2, Stock und Max Live öffnen und erneut starten.');
+  if (u.phase === 'error') toast(`Abgebrochen: ${u.error}`, true);
+});
 window.api.on('scan-progress', ({ done, total }) => { $('#status').textContent = `Scanne Plugins … ${done}/${total}`; });
 // A rescan also updates "firstSeen" (NEU badges) in the settings.
 window.api.on('library', async (lib) => { state.library = lib; state.settings = (await window.api.getState()).settings; render(); });

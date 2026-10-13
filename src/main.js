@@ -556,6 +556,40 @@ app.whenReady().then(() => {
     return { ok: true, total: indexer.total };
   });
   ipcMain.handle('liveindex-stop', () => indexer.stop());
+  // One switch for everything: rescan → photograph AU/VST3 in our own host → everything still without
+  // a picture (VST2, stock, Max, plugins the host couldn't open) through Live.
+  ipcMain.handle('capture-all', async () => {
+    const live = liveindex.available() && (await ableton.isRunning());
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'info', buttons: ['Starten', 'Abbrechen'], defaultId: 0, cancelId: 1,
+      message: 'Alle Bilder aufnehmen',
+      detail: 'Der Plugin Organizer sucht zuerst neu nach Plugins, fotografiert dann alle AU- und VST3-Plugins im Hintergrund '
+        + 'und lädt anschließend alles, was noch kein Bild hat (VST2, Stock- und Max-Devices), nacheinander in Live.\n\n'
+        + (live
+          ? '• Öffne in Live ein leeres Set und wähle eine leere MIDI-Spur aus.\n• Lass Live vorne und fass Maus und Tastatur nicht an, sobald Live an der Reihe ist. Stoppen geht jederzeit.\n'
+          : '• Ableton Live ist nicht geöffnet: Es werden nur AU- und VST3-Plugins fotografiert. Für VST2, Stock und Max später Live öffnen und erneut starten.\n')
+        + '\nBereits vorhandene Bilder bleiben erhalten.',
+    });
+    if (response !== 0) return { ok: false };
+    if (live && !(await liveindex.requestAccess())) {
+      return { ok: false, error: 'Bildschirmaufnahme nicht erlaubt: Systemeinstellungen → Datenschutz & Sicherheit → Bildschirm- & Systemaudioaufnahme → Plugin Organizer aktivieren, dann App neu starten.' };
+    }
+    (async () => {
+      send('capture-all', { phase: 'scan' });
+      await rescan();
+      send('library', library);
+      send('capture-all', { phase: 'host' });
+      snapshotter.enqueue(library);
+      while (snapshotter.running > 0 || snapshotter.queue.length) await new Promise((r) => setTimeout(r, 1000));
+      if (live && (await ableton.isRunning())) {
+        send('capture-all', { phase: 'live' });
+        indexer.enqueue(library, true);
+        while (indexer.running) await new Promise((r) => setTimeout(r, 1000));
+      }
+      send('capture-all', { phase: 'done', live });
+    })().catch((e) => { logError('capture-all', e.stack || e.message); send('capture-all', { phase: 'error', error: e.message }); });
+    return { ok: true };
+  });
   ipcMain.handle('monitor-close', () => { indexer.stop(); if (monitor && !monitor.isDestroyed()) monitor.close(); });
   // Re-record single plugins/devices in Live (stock, Max, VST2) – no dialog, just checks.
   ipcMain.handle('liveindex-some', async (_e, ids) => {
