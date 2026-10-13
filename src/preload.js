@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('api', {
   liveIndexSome: (ids) => ipcRenderer.invoke('liveindex-some', ids),
   monitorClose: () => ipcRenderer.invoke('monitor-close'),
   captureAll: () => ipcRenderer.invoke('capture-all'),
+  captureAllStop: () => ipcRenderer.invoke('capture-all-stop'),
   liveIndexStop: () => ipcRenderer.invoke('liveindex-stop'),
   toggleWindow: () => ipcRenderer.invoke('toggle-window'),
   openLink: (key) => ipcRenderer.invoke('open-link', key),

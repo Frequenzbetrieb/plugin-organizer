@@ -556,6 +556,8 @@ app.whenReady().then(() => {
     return { ok: true, total: indexer.total };
   });
   ipcMain.handle('liveindex-stop', () => indexer.stop());
+  let captureStop = false;
+  ipcMain.handle('capture-all-stop', () => { captureStop = true; snapshotter.cancel(); indexer.stop(); });
   // One switch for everything: rescan → photograph AU/VST3 in our own host → everything still without
   // a picture (VST2, stock, Max, plugins the host couldn't open) through Live.
   ipcMain.handle('capture-all', async () => {
@@ -574,6 +576,7 @@ app.whenReady().then(() => {
     if (live && !(await liveindex.requestAccess())) {
       return { ok: false, error: 'Bildschirmaufnahme nicht erlaubt: Systemeinstellungen → Datenschutz & Sicherheit → Bildschirm- & Systemaudioaufnahme → Plugin Organizer aktivieren, dann App neu starten.' };
     }
+    captureStop = false;
     (async () => {
       send('capture-all', { phase: 'scan' });
       await rescan();
@@ -581,6 +584,7 @@ app.whenReady().then(() => {
       send('capture-all', { phase: 'host' });
       snapshotter.enqueue(library);
       while (snapshotter.running > 0 || snapshotter.queue.length) await new Promise((r) => setTimeout(r, 1000));
+      if (captureStop) { send('capture-all', { phase: 'done', stopped: true }); return; }
       if (live && (await ableton.isRunning())) {
         send('capture-all', { phase: 'live' });
         indexer.enqueue(library, true);
