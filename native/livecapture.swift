@@ -36,7 +36,8 @@ func liveWindows() -> [[String: Any]] {
     guard let list = CGWindowListCopyWindowInfo(opts, kCGNullWindowID) as? [[String: Any]] else { return [] }
     return list.compactMap { w in
         guard (w[kCGWindowOwnerName as String] as? String) == "Live",
-              (w[kCGWindowLayer as String] as? Int) == 0,
+              // Layer 0 = normal windows; plugin windows can float above (layer 3 with "always on top").
+              ((w[kCGWindowLayer as String] as? Int) ?? 99) <= 8,
               let b = w[kCGWindowBounds as String] as? [String: CGFloat],
               let id = w[kCGWindowNumber as String] as? Int else { return nil }
         return ["id": id, "title": (w[kCGWindowName as String] as? String) ?? "",
