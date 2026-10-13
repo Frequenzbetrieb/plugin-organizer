@@ -348,3 +348,7 @@ body.mode-sidecar .search-wrap { flex: 1 1 90px; }
 .remote-box span { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .remote-box small { word-break: break-all; }
 .updbar .btn { white-space: nowrap; }
+.stars { color: #ffd257; font-size: 11px; letter-spacing: 1px; margin-left: 4px; }
+.menu .chainrow { display: flex; justify-content: space-between; gap: 12px; cursor: default; }
+.menu .chainrow b { cursor: pointer; padding: 0 5px; border-radius: 4px; font-weight: 600; color: var(--muted); }
+.menu .chainrow b:hover { background: var(--accent); color: #111; }

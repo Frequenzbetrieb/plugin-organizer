@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('api', {
   rescan: () => ipcRenderer.invoke('rescan'),
   saveSettings: (s) => ipcRenderer.invoke('save-settings', s),
   loadPlugin: (id, opts) => ipcRenderer.invoke('load-plugin', id, opts),
+  loadChain: (ids, opts) => ipcRenderer.invoke('load-chain', ids, opts),
   dawStatus: () => ipcRenderer.invoke('daw-status'),
   pickImage: () => ipcRenderer.invoke('pick-image'),
   checkAccessibility: () => ipcRenderer.invoke('check-accessibility'),

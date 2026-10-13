@@ -17,6 +17,7 @@
       <option value="name">Name</option>
       <option value="vendor">Hersteller</option>
       <option value="category">Kategorie</option>
+      <option value="rating">Bewertung</option>
     </select>
     <input id="size" type="range" min="140" max="420" step="10" title="Kachelgröße" />
  <button id="captureAllBtn" class="btn primary" title="Neu scannen und für alle Plugins, Stock- und Max-Devices ohne Bild eines aufnehmen – AU/VST3 im Hintergrund, der Rest in Ableton Live">Alle Bilder</button>
@@ -58,6 +59,11 @@
         <h3>Eigene</h3>
         <ul id="collections" class="facet"></ul>
         <div id="newColl" class="newcoll">+ Neu</div>
+      </section>
+      <section>
+        <h3>Ketten</h3>
+        <ul id="chains" class="facet"></ul>
+        <div class="newcoll muted" id="chainHint">Rechtsklick auf Plugins → „Zu Kette“</div>
       </section>
       <section>
         <h3>Kategorie</h3>

@@ -132,14 +132,21 @@
     // ---- monitor window ----
     'Stoppen und schließen': 'Stop and close', 'Starte …': 'Starting …', 'Noch kein Bild': 'No picture yet', 'kein Bild': 'no picture',
     // ---- types (used as words inside other strings) ----
-    'Ist eigentlich:': 'Actually:', 'Bild': 'Picture', 'Klick lädt, Rechtsklick für Optionen': 'click loads, right-click for options',
+    'Ist eigentlich:': 'Actually:',
+    'Bewertung': 'Rating', 'Zu Kette': 'Add to chain', '＋ Neue Kette': '＋ New chain', 'Ketten': 'Chains', 'Neue Kette': 'New chain',
+    'Rechtsklick auf Plugins → „Zu Kette“': 'Right-click plugins → “Add to chain”', 'Reihenfolge': 'Order', 'Kette löschen': 'Delete chain',
+    'Nach oben': 'Move up', 'Bild': 'Picture', 'Klick lädt, Rechtsklick für Optionen': 'click loads, right-click for options',
     'Wenn dir das Programm hilft, freuen wir uns über eine Spende für die Vereinsarbeit.': 'If the program helps you, we appreciate a donation for our association’s work.',
     '– frei nutzbar unter der AGPL-3.0. Wenn dir das Programm hilft, freuen wir uns über eine Spende für die Vereinsarbeit.': '– free to use under the AGPL-3.0. If the program helps you, we appreciate a donation for our association’s work.', 'NEU': 'NEW', 'Live': 'Live',
   };
 
   // Dynamic texts: [German pattern, English replacement]. "$T1" = translate group 1 as well.
   const PATTERNS = [
-    [/^Alle (\d+) zeigen →$/, 'Show all $1 →'], [/^in Live: (.+)$/, (m, a) => `in Live: ${tr(a)}`],
+    [/^Alle (\d+) zeigen →$/, 'Show all $1 →'],
+    [/^Lade Kette (.+?): (.+) …$/, 'Loading chain $1: $2 …'], [/^✓ Kette (.+) geladen$/, '✓ Chain $1 loaded'],
+    [/^Kette (.+) gestoppt bei (.+?): (.*)$/, (m, a, b, c) => `Chain ${a} stopped at ${b}: ${tr(c)}`],
+    [/^Kette „(.+)“ gelöscht$/, 'Chain “$1” deleted'], [/^Kette „(.+?)“: (.+)$/, 'Chain “$1”: $2'],
+    [/^(.+) – Klick lädt, ⇧-Klick auf neuer Spur$/, '$1 – click loads, ⇧-click on a new track'], [/^in Live: (.+)$/, (m, a) => `in Live: ${tr(a)}`],
     [/^(.+) \(auf neuer Spur\)$/, '$1 (on new track)'], [/^Alle (\d+) anzeigen$/, 'Show all $1'],
     [/^(\d+) Tasten? belegt$/, (m, n) => `${n} key${n === '1' ? '' : 's'} mapped`],
     [/^Ist eigentlich: (.+)$/, (m, a) => `Actually: ${tr(a)}`],

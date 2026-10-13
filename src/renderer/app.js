@@ -89,6 +89,9 @@ function items() {
 
 const keyFor = (it) => Object.entries(state.settings.mappings).find(([, v]) => it.ids.includes(mapVal(v).id))?.[0];
 const isFav = (it) => it.ids.some((id) => state.settings.favorites.includes(id));
+// Own star rating (1–5) per plugin, shared by all its formats.
+const ratingOf = (it) => (state.settings.ratings || {})[groupKey(it)] || 0;
+const starsHtml = (n) => (n ? `<span class="stars" title="${n} / 5">${'★'.repeat(n)}</span>` : '');
 // "Neu": showed up in a scan within the last 14 days.
 const NEW_DAYS = 14;
 const isNew = (it) => it.ids.some((id) => (state.settings.firstSeen?.[id] || 0) > Date.now() - NEW_DAYS * 86400000);
@@ -252,6 +255,93 @@ function showCollMenu(e, c) {
 
 $('#newColl').onclick = (e) => { if (e.target.tagName !== 'INPUT') newCollection(); };
 
+// ---------- chains: several plugins loaded one after another onto one track ----------
+const chains = () => state.settings.chains || [];
+async function saveChains(list) { await save({ chains: list }); render(); }
+const chainItem = (id) => items().find((x) => x.ids.includes(id));
+
+async function loadChain(c, newTrack = false) {
+  const names = c.ids.map((id) => chainItem(id)?.name || '?');
+  toast(`Lade Kette ${c.name}: ${names.join(' → ')} …`);
+  const r = await window.api.loadChain(c.ids, { newTrack });
+  if (r.ok) toast(`✓ Kette ${c.name} geladen`);
+  else toast(`Kette ${c.name} gestoppt bei ${names[r.at] || '?'}: ${r.error || ''}`, true);
+}
+
+function renderChains() {
+  const el = $('#chains');
+  el.innerHTML = '';
+  $('#chainHint').classList.toggle('hidden', chains().length > 0);
+  for (const c of chains()) {
+    const li = document.createElement('li');
+    li.title = c.ids.map((id) => chainItem(id)?.name || '?').join(' → ') + ' – Klick lädt, ⇧-Klick auf neuer Spur';
+    li.innerHTML = `<span>⛓ ${esc(c.name)}</span><span>${c.ids.length}</span>`;
+    li.onclick = (e) => loadChain(c, e.shiftKey);
+    li.oncontextmenu = (e) => { e.preventDefault(); showChainMenu(e, c); };
+    // Drop a card onto a chain to append it.
+    li.ondragover = (e) => { e.preventDefault(); li.classList.add('dropok'); };
+    li.ondragleave = () => li.classList.remove('dropok');
+    li.ondrop = (e) => {
+      e.preventDefault();
+      const it = chainItem(e.dataTransfer.getData('text/plain'));
+      if (!it) return;
+      saveChains(chains().map((x) => (x.id === c.id ? { ...x, ids: [...x.ids, it.id] } : x)));
+      toast(`${it.name} → ⛓ ${c.name}`);
+    };
+    el.appendChild(li);
+  }
+}
+
+function newChain(list) {
+  const host = $('#chainHint');
+  host.classList.remove('hidden');
+  nameInput(host, list.length === 1 ? `${list[0].name} …` : 'Neue Kette', async (name) => {
+    host.textContent = 'Rechtsklick auf Plugins → „Zu Kette“';
+    if (!name) { render(); return; }
+    await saveChains([...chains(), { id: `k${Date.now()}`, name, ids: list.map((t) => t.id) }]);
+    toast(`Kette „${name}“: ${list.map((t) => t.name).join(' → ')}`);
+  });
+}
+
+function showChainMenu(e, c) {
+  const m = $('#menu');
+  m.innerHTML = `
+    <div class="msub">⛓ ${esc(c.name)}</div>
+    <div data-a="load">In Live laden</div>
+    <div data-a="loadnew">Auf neuer Spur laden</div>
+    <hr>
+    <div class="msub">Reihenfolge</div>
+    ${c.ids.map((id, i) => `<div class="mrow chainrow"><span>${i + 1}. ${esc(chainItem(id)?.name || '?')}</span><span>
+      ${i > 0 ? `<b data-a="up" data-v="${i}" title="Nach oben">↑</b>` : ''}<b data-a="del" data-v="${i}" title="Entfernen">✕</b></span></div>`).join('')}
+    <hr>
+    <div data-a="rename">Umbenennen</div>
+    <div data-a="delete" class="danger">Kette löschen</div>`;
+  m.classList.remove('hidden');
+  m.style.left = `${Math.min(e.clientX, innerWidth - 260)}px`;
+  m.style.top = `${Math.max(8, Math.min(e.clientY, innerHeight - m.offsetHeight - 10))}px`;
+  m.onclick = async (ev) => {
+    const t = ev.target.closest('[data-a]');
+    if (!t) return;
+    const a = t.dataset.a;
+    const i = Number(t.dataset.v);
+    const update = (patch) => saveChains(chains().map((x) => (x.id === c.id ? { ...x, ...patch } : x)));
+    if (a === 'up' || a === 'del') {
+      const ids = [...c.ids];
+      if (a === 'up') [ids[i - 1], ids[i]] = [ids[i], ids[i - 1]]; else ids.splice(i, 1);
+      await update({ ids });
+      return showChainMenu(e, { ...c, ids }); // keep the menu open for more edits
+    }
+    m.classList.add('hidden');
+    if (a === 'load') loadChain(c);
+    if (a === 'loadnew') loadChain(c, true);
+    if (a === 'delete') { await saveChains(chains().filter((x) => x.id !== c.id)); toast(`Kette „${c.name}“ gelöscht`); }
+    if (a === 'rename') {
+      const li = [...$('#chains').children].find((x) => x.textContent.includes(c.name));
+      if (li) nameInput(li, c.name, (name) => (name ? update({ name }) : render()));
+    }
+  };
+}
+
 function renderVendors(list) {
   const el = $('#vendors');
   const vq = state.vendorQuery.toLowerCase();
@@ -325,6 +415,7 @@ function render() {
   renderFilterBar(all);
 
   renderCollections(all);
+  renderChains();
   const coll = collections().find((c) => c.id === state.collection);
   const ofType = (state.type === 'All' ? all : all.filter((i) => i.type === state.type)).filter((i) => !coll || inColl(i, coll));
   const byVendor = (it) => !state.vendor || it.vendor === state.vendor;
@@ -334,7 +425,7 @@ function render() {
 
   const shown = ofType.filter((i) => byCat(i) && byVendor(i));
   const s = state.sort;
-  shown.sort((a, b) => (s === 'name' ? 0 : String(a[s]).localeCompare(String(b[s]))) || a.name.localeCompare(b.name));
+  shown.sort((a, b) => (s === 'rating' ? ratingOf(b) - ratingOf(a) : s === 'name' ? 0 : String(a[s]).localeCompare(String(b[s]))) || a.name.localeCompare(b.name));
 
   const crumbs = [state.showHidden ? 'Ausgeblendete' : null, coll?.name, TYPE_LABELS[state.type], state.category, state.sub, state.vendor].filter(Boolean).join(' › ');
   $('#status').textContent = state.library.length
@@ -390,7 +481,7 @@ function card(it) {
     ${isFav(it) ? '<div class="fav">★</div>' : ''}
     ${isNew(it) ? '<div class="newtag">NEU</div>' : ''}
     <div class="name" title="${esc(it.name)}">${esc(it.name)}</div>
-    <div class="vendor">${esc(it.vendor)}</div>
+    <div class="vendor">${esc(it.vendor)} ${starsHtml(ratingOf(it))}</div>
     <div class="badges"><span class="badge cat">${esc(it.sub && it.sub !== it.category ? it.sub : it.category)}</span>${it.formats.map((f) => `<span class="badge">${f}</span>`).join('')}</div>`;
   const img = el.querySelector('.thumb img');
   if (img) img.onerror = () => img.replaceWith(document.createTextNode(initials(it.name)));
@@ -554,6 +645,18 @@ function showMenu(e, clicked) {
     </div>
     ${!multi ? `<div data-a="load">In Live laden</div><div data-a="loadnew">Auf neuer Spur laden</div>` : ''}
     <hr>
+    <div class="msub">Bewertung</div>
+    <div class="mchips">
+      ${[1, 2, 3, 4, 5].map((n) => `<span class="mchip${!multi && ratingOf(it) === n ? ' on' : ''}" data-a="rate" data-v="${n}">${'★'.repeat(n)}</span>`).join('')}
+      ${targets.some(ratingOf) ? '<span class="mchip" data-a="rate" data-v="0">✕</span>' : ''}
+    </div>
+    <hr>
+    <div class="msub">Zu Kette</div>
+    <div class="mchips">
+      ${chains().map((c) => `<span class="mchip" data-a="chain" data-v="${c.id}">⛓ ${esc(c.name)} <small>${c.ids.length}</small></span>`).join('')}
+      <span class="mchip" data-a="newchain">＋ Neue Kette</span>
+    </div>
+    <hr>
     <div class="msub">Sammlungen</div>
     <div class="mchips">
       ${collections().map((c) => { const on = targets.every((t) => inColl(t, c)); return `<span class="mchip${on ? ' on' : ''}" data-a="coll" data-v="${c.id}"><i style="background:${c.color}"></i>${esc(c.name)}</span>`; }).join('')}
@@ -619,6 +722,20 @@ function showMenu(e, clicked) {
     if (a === 'load') load(it);
     if (a === 'loadnew') load(it, { newTrack: true });
     if (a === 'newcoll') { newCollection({ name: multi ? `${targets.length} Plugins` : it.name, ids }); return; }
+    if (a === 'rate') {
+      const ratings = { ...(st.ratings || {}) };
+      for (const t of targets) { if (Number(v)) ratings[groupKey(t)] = Number(v); else delete ratings[groupKey(t)]; }
+      await save({ ratings });
+    }
+    // Chains keep the order in which the plugins were ⌘-clicked.
+    const ordered = multi ? [...state.selected].map((id) => all.find((x) => x.id === id)).filter(Boolean) : [it];
+    if (a === 'chain') {
+      const c = chains().find((x) => x.id === v);
+      await saveChains(chains().map((x) => (x.id === v ? { ...x, ids: [...x.ids, ...ordered.map((t) => t.id)] } : x)));
+      toast(`${multi ? `${ordered.length} Plugins` : it.name} → ⛓ ${c.name}`);
+      state.selected.clear();
+    }
+    if (a === 'newchain') { newChain(ordered); state.selected.clear(); }
     if (a === 'cat') {
       const [category, sub] = v.split('|');
       const o = { ...st.categoryOverrides };

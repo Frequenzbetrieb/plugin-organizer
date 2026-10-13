@@ -695,6 +695,15 @@ app.whenReady().then(() => {
   });
   ipcMain.handle('show-in-finder', (_e, p) => shell.showItemInFolder(p));
   ipcMain.handle('load-plugin', (_e, id, opts) => loadById(id, opts));
+  // A chain: load its plugins one after another onto the same track (the first one optionally on a new track).
+  ipcMain.handle('load-chain', async (_e, ids, opts = {}) => {
+    for (let i = 0; i < ids.length; i++) {
+      const r = await loadById(ids[i], { newTrack: i === 0 && Boolean(opts.newTrack) });
+      if (!r.ok) return { ok: false, error: r.error, at: i };
+      await new Promise((res) => setTimeout(res, 250));
+    }
+    return { ok: true };
+  });
   ipcMain.handle('toggle-window', () => toggleWindow());
   ipcMain.handle('window-mode', (_e, mode) => { applyWindowMode(mode); return settings; });
   ipcMain.handle('daw-status', async () => ({ ableton: await ableton.isRunning() }));
