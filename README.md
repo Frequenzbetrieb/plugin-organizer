@@ -19,6 +19,8 @@ Der Plugin Organizer zeigt alle installierten Plugins, die Stock-Devices von Abl
 ## Funktionen
 
 - **Bibliothek:** scannt AU, VST, VST3, AAX und CLAP inkl. Shell-Plugins (Waves), dazu Lives Stock-Devices und Max-for-Live-Devices aus User Library und Packs.
+- **Schnellsuche über Live:** globale Taste (⌃⌥Leertaste) – tippen, Enter lädt; zeigt ohne Eingabe zuletzt/meist geladene Plugins und Ketten. Suche tippfehler-tolerant.
+- **Notizen & Tags**, **„In welchen Live-Sets?“**, **Device ersetzen** (⌥-Klick), Ketten auf Tasten/Stream Deck/Handy, Bilder für Racks aus Favoriten/Sammlungen.
 - **Handbuch:** bebildert, Deutsch/Englisch, in der App über **?** (auch offline) – Quelle `src/manual/`.
 - **Ketten:** mehrere Plugins als Kette speichern (Rechtsklick → „Zu Kette“, Reihenfolge per ⌘-Klick) und mit einem Klick nacheinander auf die Spur laden – ⇧-Klick auf neuer Spur. Reihenfolge per Rechtsklick auf die Kette ändern.
 - **Bewertung:** 1–5 Sterne pro Plugin (Rechtsklick), Sortierung „Bewertung“.

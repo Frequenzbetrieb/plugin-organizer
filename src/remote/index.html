@@ -111,8 +111,14 @@
       if (top.kind === 'home') {
         const c = await api('/collections');
         const groups = [...HOME_GROUPS.map(([t, p]) => ({ t, p, kind: 'cats' })),
+          ...(c.loaded ? [{ t: T('Zuletzt geladen', 'Recently loaded'), p: { order: 'recent' }, kind: 'list' }, { t: T('Meistgeladen', 'Most used'), p: { order: 'top' }, kind: 'list' }] : []),
           ...(c.favorites ? [{ t: T('★ Favoriten', '★ Favourites'), p: { favorites: '1' }, kind: 'list' }] : []),
           ...(c.collections || []).filter((x) => x.count).map((x) => ({ t: x.name, p: { collection: x.id }, kind: 'list' }))];
+        // Chains load directly with one tap.
+        for (const ch of c.chains || []) {
+          grid.append(tile({ title: `⛓ ${ch.name}`, sub: T(`${ch.count} Plugins`, `${ch.count} plugins`), cls: 'group', img: `/image?${qs({ id: ch.id, size: 288, title: 0 })}`, initials: '⛓',
+            onTap: () => load({ id: ch.id, name: ch.name }) }));
+        }
         for (const g of groups) {
           grid.append(tile({ title: g.t, cls: 'group', img: `/groupimage?${qs({ ...g.p, size: 288, title: 0 })}`, initials: initialsOf(g.t),
             onTap: () => { stack.push({ title: g.t, kind: g.kind, params: g.p }); show(); } }));

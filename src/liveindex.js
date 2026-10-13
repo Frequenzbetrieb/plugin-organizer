@@ -64,14 +64,14 @@ class LiveIndexer {
   enqueue(library, onlyMissing = true) {
     const groups = new Map();
     for (const p of library) {
-      if (!ableton.SUPPORTED_FORMATS.includes(p.format)) continue;
+      if (!ableton.SUPPORTED_FORMATS.includes(p.format) && p.source !== 'Preset') continue;
       if (p.midiTool) continue; // MIDI Tools live in the clip view – nothing to photograph on the track
       const k = groupKey(p);
       if (onlyMissing && hasPicture(this.store, p)) continue;
       if (!groups.has(k)) groups.set(k, p);
     }
     // Most useful first: stock devices, then Max devices from Ableton packs, own User Library devices last.
-    const rank = (p) => (p.source === 'Stock' ? 0 : p.source === 'Max' && p.vendor === 'User Library' ? 3 : p.source === 'Max' ? 1 : 2);
+    const rank = (p) => (p.source === 'Stock' ? 0 : p.source === 'Max' && p.vendor === 'User Library' ? 3 : p.source === 'Max' ? 1 : p.source === 'Preset' ? 4 : 2);
     this.queue = [...groups.values()].sort((a, b) => rank(a) - rank(b)).map((p) => ({ key: groupKey(p), plugin: p }));
     this.done = 0;
     this.total = this.queue.length;
@@ -124,7 +124,7 @@ class LiveIndexer {
   // → true/false, or null when the script can't find the item (then the search path tries).
   async captureViaScript(job) {
     const p = job.plugin;
-    const isDevice = p.source === 'Stock' || p.source === 'Max';
+    const isDevice = p.source === 'Stock' || p.source === 'Max' || p.source === 'Preset';
     // Live opens a plugin's own window only when loaded from its browser UI, not via the API → search path.
     if (!isDevice) return null;
     fs.mkdirSync(this.dir, { recursive: true });
@@ -164,7 +164,7 @@ class LiveIndexer {
           return null;
         };
         let box = null;
-        const deadline = Date.now() + (p.source === 'Max' ? 12000 : 5000);
+        const deadline = Date.now() + (p.source === 'Max' || p.source === 'Preset' ? 12000 : 5000);
         await sleep(250);
         do { box = await findBox(); if (!box) await sleep(200); } while (!box && Date.now() < deadline);
         if (box && p.source === 'Max') { await sleep(900); box = (await findBox()) || box; }
@@ -188,7 +188,7 @@ class LiveIndexer {
   async captureViaSearch(job) {
     fs.mkdirSync(this.dir, { recursive: true });
     const p = job.plugin;
-    const isDevice = p.source === 'Stock' || p.source === 'Max';
+    const isDevice = p.source === 'Stock' || p.source === 'Max' || p.source === 'Preset';
     this.hadPluginWindow = false;
     const hash = crypto.createHash('md5').update(job.key).digest('hex');
     const out = path.join(this.dir, `${hash}-${Date.now()}.png`);

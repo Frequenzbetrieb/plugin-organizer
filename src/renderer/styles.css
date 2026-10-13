@@ -352,3 +352,20 @@ body.mode-sidecar .search-wrap { flex: 1 1 90px; }
 .menu .chainrow { display: flex; justify-content: space-between; gap: 12px; cursor: default; }
 .menu .chainrow b { cursor: pointer; padding: 0 5px; border-radius: 4px; font-weight: 600; color: var(--muted); }
 .menu .chainrow b:hover { background: var(--accent); color: #111; }
+.ctags { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 0; }
+.ctags span { font-size: 10px; color: var(--accent); }
+.taglist { display: flex; flex-wrap: wrap; gap: 5px; padding: 2px 4px 6px; }
+.tagchip { font-size: 12px; border: 1px solid var(--line); border-radius: 99px; padding: 1px 8px; cursor: pointer; color: var(--text); }
+.tagchip:hover, .tagchip.on { background: var(--accent); border-color: var(--accent); color: #111; }
+.tagchip small { opacity: .7; }
+#infoBody .flabel { display: block; color: var(--muted); font-size: 12px; margin: 10px 0 4px; }
+#infoBody textarea, #infoBody input { width: 100%; box-sizing: border-box; background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; }
+#infoBody .modal-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
+#infoBody .note { background: var(--card); border-left: 3px solid var(--accent); padding: 8px 10px; border-radius: 6px; }
+.usedlist { list-style: none; padding: 0; margin: 6px 0; max-height: 50vh; overflow-y: auto; }
+.usedlist li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.usedlist li:hover { background: var(--accent); color: #111; }
+.usedlist small { color: var(--muted); }
+.muted.small { font-size: 12px; color: var(--muted); }
+.menu [data-a="replace"] small { display: block; color: var(--muted); font-size: 11px; }
+.menu [data-a="replace"]:hover small { color: #222; }

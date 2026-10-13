@@ -44,7 +44,10 @@ const DEFAULT_SETTINGS = {
   language: 'auto', // auto | de | en
   autoUpdate: true,
   autoRescan: true,
-  remoteEnabled: false, // phone/tablet remote in the local network (off until switched on) // rescan by itself when plugins are installed or removed
+  remoteEnabled: false,
+  quickKey: 'Control+Alt+Space', // global quick search over Live
+  notes: {}, // name|vendor → own note
+  tags: {}, // name|vendor → [tags] // phone/tablet remote in the local network (off until switched on) // rescan by itself when plugins are installed or removed
   firstSeen: {}, // plugin id → time it first showed up (after the very first scan) – drives the "Neu" badge // look for a new release on GitHub at start and every 6 hours
   windowMode: 'full', // full | sidecar | mini
   fullBounds: null, // size/position of the full window, restored when switching back
@@ -123,6 +126,53 @@ function toggleWindow(forceShow = false) {
   }
 }
 
+// ---------- Quick search: a small floating search over Live (global key) ----------
+let quickWin = null;
+let quickHadFocus = false;
+function toggleQuick() {
+  if (quickWin && !quickWin.isDestroyed() && quickWin.isVisible()) return hideQuick();
+  quickHadFocus = Boolean(win && !win.isDestroyed() && win.isVisible() && win.isFocused());
+  const { screen } = require('electron');
+  const area = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+  const bounds = { width: 640, height: 470, x: Math.round(area.x + (area.width - 640) / 2), y: Math.round(area.y + area.height * 0.18) };
+  if (!quickWin || quickWin.isDestroyed()) {
+    quickWin = new BrowserWindow({
+      ...bounds, frame: false, resizable: false, alwaysOnTop: true, skipTaskbar: true, show: false, fullscreenable: false,
+      backgroundColor: '#1b1d23', webPreferences: { preload: path.join(__dirname, 'preload.js') },
+    });
+    quickWin.setAlwaysOnTop(true, 'floating');
+    quickWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    quickWin.loadFile(path.join(__dirname, 'renderer', 'quick.html'), { query: { lang: lang() } });
+    quickWin.on('blur', () => hideQuick(true));
+    quickWin.once('ready-to-show', () => { quickWin.show(); quickWin.focus(); });
+  } else {
+    quickWin.setBounds(bounds);
+    quickWin.webContents.send('quick-open');
+    quickWin.show();
+    quickWin.focus();
+  }
+  app.focus({ steal: true });
+}
+// After loading/escape: hand the focus back (to Live, unless the main window was in use).
+function hideQuick(fromBlur = false) {
+  if (!quickWin || quickWin.isDestroyed() || !quickWin.isVisible()) return;
+  quickWin.hide();
+  if (!fromBlur && !quickHadFocus && process.platform === 'darwin') app.hide();
+}
+// What the quick search needs: one entry per plugin with picture, stats, tags; plus chains.
+function quickData() {
+  const groupKeyOf = (p) => `${p.name.toLowerCase()}|${p.vendor.toLowerCase()}`;
+  const hidden = new Set(settings.hidden || []);
+  const map = new Map();
+  for (const p of library) {
+    if (hidden.has(p.id) || p.midiTool) continue;
+    const k = groupKeyOf(p);
+    if (!map.has(k)) map.set(k, { id: p.id, ids: [p.id], name: p.name, vendor: p.vendor, type: p.type, category: p.category, sub: p.sub, source: p.source, format: p.format, device: p.device });
+    else map.get(k).ids.push(p.id);
+  }
+  return { entries: [...map.values()], shots, settings: { images: settings.images, loadStats: settings.loadStats, tags: settings.tags, notes: settings.notes, ratings: settings.ratings, chains: settings.chains, favorites: settings.favorites } };
+}
+
 // Window modes: the full window, a screen-high sidecar strip at the right edge, or a small floating search.
 function applyWindowMode(mode, remember = true) {
   if (!win || win.isDestroyed()) return;
@@ -158,6 +208,9 @@ function registerHotkeys() {
       if (!globalShortcut.register(settings.toggleKey, () => toggleWindow())) logError('toggle-key-register-failed', settings.toggleKey);
     } catch (e) { logError('toggle-key-invalid', `${settings.toggleKey}: ${e.message}`); }
   }
+  if (settings.quickKey) {
+    try { if (!globalShortcut.register(settings.quickKey, () => toggleQuick())) logError('quick-key-register-failed', settings.quickKey); } catch (e) { logError('quick-key-invalid', `${settings.quickKey}: ${e.message}`); }
+  }
   if (!settings.globalHotkeys) return;
   if (!settings.modifier && !liveFront) return;
   for (const [key, v] of Object.entries(settings.mappings)) {
@@ -191,8 +244,21 @@ async function loadById(id, opts = {}) {
   }
 }
 
+// A chain: its plugins one after another onto the same track (the first one optionally on a new track).
+async function loadChainInner(chainId, opts = {}) {
+  const c = (settings.chains || []).find((x) => x.id === chainId);
+  if (!c) return { ok: false, error: 'Kette nicht gefunden.' };
+  for (let i = 0; i < c.ids.length; i++) {
+    const r = await loadByIdInner(c.ids[i], { newTrack: i === 0 && Boolean(opts.newTrack) });
+    if (!r.ok) return { ...r, at: i };
+    await new Promise((res) => setTimeout(res, 250));
+  }
+  return { ok: true };
+}
+
 async function loadByIdInner(id, opts = {}) {
   if (indexer?.running) return { ok: false, error: 'Indexierung läuft – Laden wartet, bis sie fertig ist.' };
+  if (String(id).startsWith('chain:')) return loadChainInner(id.slice(6), opts);
   let plugin = library.find((p) => p.id === id);
   if (!plugin) return { ok: false, error: 'Plugin nicht gefunden.' };
   if (!plugin.liveName) {
@@ -200,8 +266,11 @@ async function loadByIdInner(id, opts = {}) {
     if (sibling) plugin = { ...plugin, liveName: sibling.liveName };
   }
   try {
+    if (opts.replace && !(await livescript.current())) throw new Error('Ersetzen braucht das aktuelle Live-Skript – Live neu starten bzw. Live-Skript einrichten.');
     // Preferred: our script inside Live loads through Live's browser API. Fallback: type into Live's search.
     const viaScript = await livescript.load(plugin, opts);
+    // Replacing the selected device needs the script – there's no safe way via the search.
+    if (opts.replace && !viaScript?.ok) throw new Error(viaScript?.error === 'nodevice' ? 'Kein Device in Live ausgewählt.' : 'Ersetzen geht nur mit aktivem Live-Skript.');
     if (!viaScript?.ok) {
       if (viaScript) logError('script-load', `${plugin.name}: ${viaScript.error}`);
       await liveindex.loadExact(plugin, opts);
@@ -268,7 +337,7 @@ function watchPlugins() {
 // What a backup carries over (window positions and machine-specific things stay behind).
 const BACKUP_KEYS = ['mappings', 'favorites', 'images', 'hidden', 'categoryOverrides', 'collections', 'modifier', 'keyboardLayout',
   'alwaysOnTop', 'toggleKey', 'hideAfterLoad', 'windowMode', 'showDawShortcuts', 'globalHotkeys', 'loadStats', 'sessionFolders',
-  'autoUpdate', 'autoRescan', 'firstSeen'];
+  'autoUpdate', 'autoRescan', 'firstSeen', 'chains', 'ratings', 'notes', 'tags', 'quickKey', 'language'];
 const tar = (args) => new Promise((r, j) => require('child_process').execFile('tar', args, { maxBuffer: 1e8 }, (e, so, se) => (e ? j(new Error(se || e.message)) : r())));
 
 async function exportBackup(target) {
@@ -568,6 +637,13 @@ app.whenReady().then(() => {
       return { ok: true };
     } catch (e) { logError('update', e.stack || e.message); return { ok: false, error: e.message }; }
   });
+  // Dev helper: PO_QUICK_SHOT=<png> [PO_QUICK_Q=text] opens the quick search and saves a picture of it.
+  if (process.env.PO_QUICK_SHOT) setTimeout(async () => {
+    toggleQuick();
+    await new Promise((r) => setTimeout(r, 2500));
+    if (process.env.PO_QUICK_Q) { await quickWin.webContents.executeJavaScript(`(() => { const q = document.querySelector('#q'); q.value = ${JSON.stringify(process.env.PO_QUICK_Q)}; q.dispatchEvent(new Event('input')); })()`); await new Promise((r) => setTimeout(r, 800)); }
+    fs.writeFileSync(process.env.PO_QUICK_SHOT, (await quickWin.capturePage()).toPNG());
+  }, 5000);
   // Dev helper: PO_TEST_UPDATE=1 checks and installs right away.
   // Dev helper: PO_TEST_BACKUP=export:<file> or import:<file>.
   if (process.env.PO_TEST_BACKUP) setTimeout(async () => { const [m, f] = process.env.PO_TEST_BACKUP.split(/:(.*)/); logError('test-backup', JSON.stringify(m === 'export' ? await exportBackup(f) : await importBackup(f))); }, 4000);
@@ -657,11 +733,14 @@ app.whenReady().then(() => {
       send('library', library);
       send('capture-all', { phase: 'host' });
       snapshotter.enqueue(library);
+      // Racks/presets only when they matter to you: favourites, collections, chains, keys.
+      const mine = new Set([...(settings.favorites || []), ...(settings.collections || []).flatMap((c) => c.ids), ...(settings.chains || []).flatMap((c) => c.ids), ...Object.values(settings.mappings || {}).map((m) => mapping(m).id)]);
+      const forLive = library.filter((p) => p.source !== 'Preset' || mine.has(p.id));
       while (snapshotter.running > 0 || snapshotter.queue.length) await new Promise((r) => setTimeout(r, 1000));
       if (captureStop) { send('capture-all', { phase: 'done', stopped: true }); return; }
       if (live && (await ableton.isRunning())) {
         send('capture-all', { phase: 'live' });
-        indexer.enqueue(library, true);
+        indexer.enqueue(forLive, true);
         while (indexer.running) await new Promise((r) => setTimeout(r, 1000));
       }
       send('capture-all', { phase: 'done', live });
@@ -705,14 +784,20 @@ app.whenReady().then(() => {
   ipcMain.handle('show-in-finder', (_e, p) => shell.showItemInFolder(p));
   ipcMain.handle('load-plugin', (_e, id, opts) => loadById(id, opts));
   // A chain: load its plugins one after another onto the same track (the first one optionally on a new track).
-  ipcMain.handle('load-chain', async (_e, ids, opts = {}) => {
-    for (let i = 0; i < ids.length; i++) {
-      const r = await loadById(ids[i], { newTrack: i === 0 && Boolean(opts.newTrack) });
-      if (!r.ok) return { ok: false, error: r.error, at: i };
-      await new Promise((res) => setTimeout(res, 250));
-    }
-    return { ok: true };
+  ipcMain.handle('load-chain', (_e, chainId, opts = {}) => loadById(`chain:${chainId}`, opts));
+  // Which Live sets use a plugin (from the Health session scan).
+  ipcMain.handle('used-in', (_e, name, vendor) => {
+    const cache = readJson(healthFile(), { sessions: {} });
+    const sets = Object.keys(cache.sessions || {});
+    const norm = (s) => String(s).toLowerCase().replace(/\((m->s|s|m|mono|stereo)\)|\b(stereo|mono)\b/g, '').replace(/[^a-z0-9]/g, '');
+    const want = norm(name);
+    const hits = sets.filter((f) => (cache.sessions[f].plugins || []).some((n) => norm(n) === want))
+      .map((f) => ({ file: f, name: path.basename(f, '.als'), mtime: cache.sessions[f].mtime }))
+      .sort((a, b) => b.mtime - a.mtime);
+    return { scanned: sets.length, folders: settings.sessionFolders || [], hits };
   });
+  ipcMain.handle('quick-hide', () => hideQuick());
+  ipcMain.handle('quick-data', () => quickData());
   ipcMain.handle('toggle-window', () => toggleWindow());
   ipcMain.handle('window-mode', (_e, mode) => { applyWindowMode(mode); return settings; });
   ipcMain.handle('daw-status', async () => ({ ableton: await ableton.isRunning() }));

@@ -74,8 +74,8 @@ const current = async () => (await running()) >= VERSION;
 
 // → { ok } | { ok:false, error:'notfound'|… } | null (script not reachable)
 function load(plugin, opts = {}) {
-  const newTrack = opts.newTrack ? (plugin.type === 'Effect' ? 'audio' : 'midi') : '';
-  const base = { cmd: 'load', newTrack, type: plugin.type, remember: Boolean(opts.remember) };
+  const newTrack = opts.newTrack && !opts.replace ? (plugin.type === 'Effect' ? 'audio' : 'midi') : '';
+  const base = { cmd: 'load', newTrack, type: plugin.type, remember: Boolean(opts.remember), replace: Boolean(opts.replace) };
   if (plugin.source === 'Stock') return request({ ...base, kind: 'stock', name: plugin.name }, 8000);
   if (plugin.source === 'Max' || plugin.source === 'Preset') return request({ ...base, kind: 'file', path: plugin.path }, 8000);
   // The first plugin lookup walks Live's whole plugin list – give it time.

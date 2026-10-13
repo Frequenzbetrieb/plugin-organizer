@@ -15,10 +15,13 @@
   <a href="#bilder">Bilder für alle Plugins</a>
   <a href="#laden">Laden in Live</a>
   <a class="sub" href="#liveskript">Live-Skript einrichten</a>
+  <a class="sub" href="#schnellsuche">Schnellsuche über Live</a>
+  <a class="sub" href="#ersetzen">Device ersetzen</a>
   <a href="#ordnung">Ordnen &amp; Finden</a>
   <a class="sub" href="#menu">Rechtsklick-Menü</a>
   <a class="sub" href="#sammlungen">Sammlungen &amp; Favoriten</a>
   <a class="sub" href="#bewertung">Bewertung</a>
+  <a class="sub" href="#notizen">Notizen &amp; Tags</a>
   <a href="#ketten">Ketten</a>
   <a href="#tasten">Plugins auf Tasten</a>
   <a href="#ansichten">Vollbild, Sidecar, Mini</a>
@@ -68,13 +71,15 @@
   </ol>
   <p>Während es läuft, wird der Knopf zu <span class="ui">Stopp</span> und zeigt den Fortschritt. Bereits vorhandene Bilder bleiben erhalten; es werden nur fehlende aufgenommen.</p>
   <div class="tip"><b>Wichtig für Schritt 2:</b> Ein <b>leeres Set</b> in Live öffnen, eine leere MIDI-Spur auswählen und <b>Live vorne lassen</b>. Maus und Tastatur nicht anfassen, solange Live an der Reihe ist. In Lives Einstellungen → Plug-Ins sollte „Plug-In-Fenster automatisch öffnen“ an sein.</div>
+  <p><b>Racks und Presets</b> bekommen ein eigenes Bild, sobald sie in deinen Favoriten, Sammlungen, Ketten oder auf einer Taste liegen – „Alle Bilder“ nimmt sie dann mit auf (alle rund 10.000 wären zu viel). Einzelne fotografierst du per Rechtsklick → Aufnehmen.</p>
   <p>Links unter den Filtern zeigt <span class="ui">▢ Ohne Bild</span>, wie viele Bilder noch fehlen – ein Haken zeigt genau diese Plugins. Einzelne Plugins fotografierst du per Rechtsklick → <span class="ui">Aufnehmen</span>, oder du wählst mit <span class="ui">Eigenes Bild wählen …</span> ein beliebiges Bild.</p>
 
   <h2 id="laden">Laden in Live</h2>
   <ul>
     <li><b>Klick</b> auf eine Kachel lädt das Plugin auf die <b>ausgewählte Spur</b> in Live.</li>
     <li><b><kbd>⇧</kbd>-Klick</b> legt vorher eine <b>neue Spur</b> an – MIDI für Instrumente, Audio für Effekte.</li>
-    <li>Oder: Rechtsklick → <span class="ui">In Live laden</span> / <span class="ui">Auf neuer Spur laden</span>, eine <a href="#tasten">Taste</a>, das <a href="#streamdeck">Stream Deck</a> oder das <a href="#fernbedienung">Handy</a>.</li>
+    <li><b><kbd>⌥</kbd>-Klick</b> <a href="#ersetzen">ersetzt</a> das in Live ausgewählte Device.</li>
+    <li>Oder: Rechtsklick → <span class="ui">In Live laden</span> / <span class="ui">Auf neuer Spur laden</span>, die <a href="#schnellsuche">Schnellsuche</a>, eine <a href="#tasten">Taste</a>, das <a href="#streamdeck">Stream Deck</a> oder das <a href="#fernbedienung">Handy</a>.</li>
   </ul>
 
   <h3 id="liveskript">Live-Skript einrichten</h3>
@@ -86,6 +91,21 @@
   </ol>
   <figure class="small"><img src="img/de/guide.jpg" alt=""><figcaption>Die Anleitung in der App prüft laufend und zeigt ✓, sobald das Skript aktiv ist.</figcaption></figure>
   <p>Den Stand siehst du jederzeit unter ⚙ Einstellungen → <span class="ui">Live-Skript</span>. Ohne Skript lädt der Organizer über Lives Suche – das klappt auch, ist aber langsamer.</p>
+
+  <h3 id="schnellsuche">Schnellsuche über Live</h3>
+  <p>Mit der Schnellsuche-Taste (Standard <kbd>⌃⌥Leertaste</kbd>) öffnet sich mitten über Live ein kleines Suchfenster – die App muss dafür nicht vorne sein:</p>
+  <div class="row">
+    <figure class="small"><img src="img/de/quick.jpg" alt=""><figcaption>Ohne Eingabe: zuletzt und meist geladen, deine Ketten</figcaption></figure>
+    <figure class="small"><img src="img/de/quick2.jpg" alt=""><figcaption>Tippfehler sind kein Problem: „valhala“ findet Valhalla</figcaption></figure>
+  </div>
+  <ul>
+    <li>Tippen, mit <kbd>↑</kbd>/<kbd>↓</kbd> wählen, <kbd>Enter</kbd> lädt – <kbd>⇧</kbd><kbd>Enter</kbd> auf neuer Spur, <kbd>⌥</kbd><kbd>Enter</kbd> ersetzt das ausgewählte Device, <kbd>Esc</kbd> schließt.</li>
+    <li>Danach ist Live sofort wieder vorne.</li>
+    <li>Die Taste änderst du unter ⚙ Einstellungen → <span class="ui">Schnellsuche-Taste</span>.</li>
+  </ul>
+
+  <h3 id="ersetzen">Device ersetzen</h3>
+  <p>Statt ein Plugin dazuzulegen, kannst du das in Live <b>ausgewählte Device austauschen</b> – das neue landet an genau derselben Stelle der Kette: <kbd>⌥</kbd>-Klick auf eine Kachel, Rechtsklick → <span class="ui">Ausgewähltes Device ersetzen</span> oder <kbd>⌥</kbd><kbd>Enter</kbd> in der Schnellsuche. Dafür muss das <a href="#liveskript">Live-Skript</a> aktiv sein.</p>
 
   <h2 id="ordnung">Ordnen &amp; Finden</h2>
   <div class="row">
@@ -99,6 +119,8 @@
         <li><b>Kategorie</b> mit Unterkategorien (z. B. Dynamics › Compressor) und <b>Hersteller</b>.</li>
       </ul>
       <p>Neu installierte Plugins erkennt der Organizer automatisch und markiert sie 14 Tage lang mit <b>NEU</b>.</p>
+      <p><b>Die Suche verzeiht viel:</b> Leer- und Bindestriche sind egal („proq“ → Pro-Q 3), Wortanfänge zählen, ein Tippfehler pro Wort ist erlaubt – und sie durchsucht auch deine Tags und Notizen. Die besten Treffer stehen vorne.</p>
+      <p><b>Sortierung</b> oben: Name, Hersteller, Kategorie, Bewertung, <b>Zuletzt geladen</b> oder <b>Meistgeladen</b>.</p>
     </div>
   </div>
 
@@ -124,6 +146,15 @@
   <h3 id="bewertung">Bewertung</h3>
   <p>Per Rechtsklick → <b>Bewertung</b> vergibst du 1 bis 5 Sterne; sie erscheinen auf der Kachel neben dem Hersteller. Oben im Sortiermenü stellt <span class="ui">Bewertung</span> deine Lieblinge nach vorne.</p>
 
+  <h3 id="notizen">Notizen &amp; Tags</h3>
+  <div class="row">
+    <figure class="small"><img src="img/de/notes.jpg" alt=""></figure>
+    <div style="flex:1;min-width:280px">
+      <p>Rechtsklick → <span class="ui">Notiz &amp; Tags …</span>: Schreib dir auf, wofür ein Plugin gut ist („gut für Vocals“, „CPU-hungrig“), und vergib Tags. Tags erscheinen auf der Kachel und links unter <b>Tags</b> – ein Klick filtert danach. Mit mehreren ausgewählten Plugins fügst du allen auf einmal Tags hinzu. Die Suche findet Notizen und Tags mit.</p>
+      <p><b>In welchen Live-Sets?</b> – ebenfalls im Rechtsklick-Menü: zeigt, welche deiner Sets das Plugin benutzen (aus den Ordnern, die du in <a href="#health">Health</a> eingetragen hast). Praktisch, bevor du etwas deinstallierst.</p>
+    </div>
+  </div>
+
   <h2 id="ketten">Ketten</h2>
   <p>Eine Kette sind mehrere Plugins, die nacheinander auf <b>eine</b> Spur geladen werden – zum Beispiel <i>EQ → Kompressor → De-Esser → Hall</i> für Vocals.</p>
   <div class="row">
@@ -134,6 +165,7 @@
         <li><b>Erweitern:</b> Rechtsklick auf ein Plugin → Zu Kette → Kette wählen, oder die Kachel auf die Kette ziehen.</li>
         <li><b>Laden:</b> Klick auf die Kette links; <kbd>⇧</kbd>-Klick lädt sie auf eine neue Spur.</li>
         <li><b>Bearbeiten:</b> Rechtsklick auf die Kette – mit ↑ nach oben schieben, mit ✕ entfernen.</li>
+        <li><b>Auf eine Taste:</b> die Kette auf eine Taste der Bildschirmtastatur ziehen. Ketten gibt es außerdem in der Schnellsuche, auf dem Stream Deck und auf dem Handy.</li>
       </ol>
     </div>
   </div>
@@ -175,6 +207,7 @@
         <li>Oder die Aktion <b>„Browser öffnen“</b>: Ein Druck öffnet einen Browser auf dem Deck – 12 Tasten mit Bild, rechts ◀ ▶ zum Blättern und ↩ zurück.</li>
       </ol>
       <p><b>Kurz drücken</b> lädt auf die ausgewählte Spur, <b>lang drücken</b> (½ s) auf eine neue. Der Organizer muss dafür laufen.</p>
+      <p>In der Übersicht findest du außerdem <b>Zuletzt</b>, <b>Meistgeladen</b> und deine <b>Ketten</b>; auch „Plugin laden“ kann eine Kette auf eine Taste legen.</p>
     </div>
   </div>
 
@@ -188,6 +221,7 @@
         <li>macOS fragt einmal nach eingehenden Verbindungen → <b>Erlauben</b>.</li>
         <li>Den <b>QR-Code</b> mit der Kamera scannen – der Plugin-Browser öffnet sich im Browser.</li>
       </ol>
+      <p>Auf der Startseite: Bereiche, <b>Zuletzt geladen</b>, <b>Meistgeladen</b>, Favoriten, Sammlungen und deine <b>Ketten</b> (ein Tipp lädt die ganze Kette).</p>
       <p>Antippen lädt in Live; der Schalter <span class="ui">＋ Neue Spur</span> legt vorher eine neue Spur an. Es braucht keine App, nur dasselbe WLAN. Tipp für iPhone/iPad: in Safari „Teilen → Zum Home-Bildschirm“.</p>
       <p>Zugriff gibt es nur mit dem geheimen Schlüssel aus dem QR-Code. <span class="ui">Neuen Code erzeugen</span> macht alte Links ungültig.</p>
     </div>
@@ -202,7 +236,7 @@
     <figure class="small"><img src="img/de/settings.jpg" alt=""></figure>
     <div style="flex:1;min-width:280px">
       <ul>
-        <li><b>Immer im Vordergrund</b>, <b>Ein-/Ausblenden-Taste</b>, <b>Nach dem Laden ausblenden</b></li>
+        <li><b>Immer im Vordergrund</b>, <b>Ein-/Ausblenden-Taste</b>, <b>Schnellsuche-Taste</b>, <b>Nach dem Laden ausblenden</b></li>
         <li><b>Sprache:</b> Automatisch, Deutsch oder English</li>
         <li><b>Beim Anmelden starten</b></li>
         <li><b>Live-Skript:</b> Status, Anleitung, Installieren</li>
@@ -217,7 +251,7 @@
   <h3 id="sichern">Sichern &amp; Zurücksetzen</h3>
   <figure class="small"><img src="img/de/settings2.jpg" alt=""></figure>
   <ul>
-    <li><span class="ui">Sichern …</span> schreibt Tasten, Favoriten, Sammlungen, Ketten, Bewertungen, Kategorien, eigene Bilder, alle Plugin-Bilder und Einstellungen in <b>eine Datei</b> (.pobackup).</li>
+    <li><span class="ui">Sichern …</span> schreibt Tasten, Favoriten, Sammlungen, Ketten, Bewertungen, Notizen, Tags, Kategorien, eigene Bilder, alle Plugin-Bilder und Einstellungen in <b>eine Datei</b> (.pobackup).</li>
     <li><span class="ui">Wiederherstellen …</span> spielt sie zurück – auch auf einem anderen Rechner.</li>
     <li><span class="ui">Zurücksetzen …</span> löscht Plugin-Liste, Bilder und Einstellungen und startet wie frisch installiert. Vorher fragt der Organizer nach und bietet eine Sicherung an. Deine Plugins und Live bleiben unberührt.</li>
   </ul>

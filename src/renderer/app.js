@@ -91,6 +91,10 @@ const keyFor = (it) => Object.entries(state.settings.mappings).find(([, v]) => i
 const isFav = (it) => it.ids.some((id) => state.settings.favorites.includes(id));
 // Own star rating (1–5) per plugin, shared by all its formats.
 const ratingOf = (it) => (state.settings.ratings || {})[groupKey(it)] || 0;
+const statOf = (it) => (state.settings.loadStats || {})[groupKey(it)] || { count: 0, last: 0 };
+const tagsOf = (it) => (state.settings.tags || {})[groupKey(it)] || [];
+const noteOf = (it) => (state.settings.notes || {})[groupKey(it)] || '';
+const searchScore = (it) => window.Search.score({ ...it, extra: `${tagsOf(it).join(' ')} ${noteOf(it)} ${it.formats.join(' ')}` }, state.query);
 const starsHtml = (n) => (n ? `<span class="stars" title="${n} / 5">${'★'.repeat(n)}</span>` : '');
 // "Neu": showed up in a scan within the last 14 days.
 const NEW_DAYS = 14;
@@ -99,10 +103,12 @@ const customImg = (it) => it.ids.map((id) => state.settings.images[id]).find(Boo
 // No picture yet (MIDI Tools live in the clip view and can't have one).
 const noPic = (it) => !it.midiTool && !customImg(it) && !shotFor(it);
 
+// Forgiving search (src/search.js): word starts, spaces/dashes ignored, one typo per word.
 function matches(it) {
+  if (state.tag && !tagsOf(it).includes(state.tag)) return false;
   if (!state.query) return true;
-  const hay = `${it.name} ${it.vendor} ${it.category} ${it.sub} ${it.type} ${it.formats.join(' ')}`.toLowerCase();
-  return state.query.toLowerCase().split(/\s+/).every((t) => hay.includes(t));
+  it.score = searchScore(it);
+  return it.score > 0;
 }
 
 // ---------- render ----------
@@ -255,6 +261,71 @@ function showCollMenu(e, c) {
 
 $('#newColl').onclick = (e) => { if (e.target.tagName !== 'INPUT') newCollection(); };
 
+// ---------- notes & tags ----------
+function renderTags(list) {
+  const counts = {};
+  for (const it of list) for (const t of tagsOf(it)) counts[t] = (counts[t] || 0) + 1;
+  const names = Object.keys(counts).sort((a, b) => a.localeCompare(b));
+  if (state.tag && !counts[state.tag]) state.tag = null;
+  $('#tagSection').classList.toggle('hidden', !names.length);
+  $('#tagList').innerHTML = names.map((t) => `<span class="tagchip${state.tag === t ? ' on' : ''}" data-t="${esc(t)}">#${esc(t)} <small>${counts[t]}</small></span>`).join('');
+  $('#tagList').querySelectorAll('[data-t]').forEach((el) => { el.onclick = () => { state.tag = state.tag === el.dataset.t ? null : el.dataset.t; render(); }; });
+}
+
+function infoModal(title, html) {
+  $('#infoTitle').textContent = title;
+  $('#infoBody').innerHTML = html;
+  $('#infoModal').classList.remove('hidden');
+}
+$('#infoClose').onclick = () => $('#infoModal').classList.add('hidden');
+$('#infoModal').onclick = (e) => { if (e.target.id === 'infoModal') $('#infoModal').classList.add('hidden'); };
+
+// Note + tags for one plugin; for several: add tags to all of them.
+function editNotes(targets) {
+  const one = targets.length === 1 ? targets[0] : null;
+  const allTags = [...new Set(Object.values(state.settings.tags || {}).flat())].sort();
+  infoModal(one ? one.name : `${targets.length} Plugins`, `
+    ${one ? `<label class="flabel">Notiz</label><textarea id="noteText" rows="4" placeholder="z. B. gut für Vocals, CPU-hungrig …">${esc(noteOf(one))}</textarea>` : ''}
+    <label class="flabel">Tags <small>(mit Komma trennen)</small></label>
+    <input id="tagText" value="${esc(one ? tagsOf(one).join(', ') : '')}" placeholder="vocals, cpu-hungrig, schranz">
+    ${allTags.length ? `<div class="taglist">${allTags.map((t) => `<span class="tagchip" data-add="${esc(t)}">#${esc(t)}</span>`).join('')}</div>` : ''}
+    <div class="modal-foot"><button class="btn primary" id="noteSave">Speichern</button></div>`);
+  $('#infoBody').querySelectorAll('[data-add]').forEach((el) => {
+    el.onclick = () => { const cur = $('#tagText').value.split(',').map((x) => x.trim()).filter(Boolean); if (!cur.includes(el.dataset.add)) cur.push(el.dataset.add); $('#tagText').value = cur.join(', '); };
+  });
+  (one ? $('#noteText') : $('#tagText')).focus();
+  $('#noteSave').onclick = async () => {
+    const newTags = [...new Set($('#tagText').value.split(',').map((x) => x.trim().toLowerCase().replace(/^#/, '')).filter(Boolean))];
+    const tags = { ...(state.settings.tags || {}) };
+    const notes = { ...(state.settings.notes || {}) };
+    for (const t of targets) {
+      const k = groupKey(t);
+      const next = one ? newTags : [...new Set([...(tags[k] || []), ...newTags])];
+      if (next.length) tags[k] = next; else delete tags[k];
+      if (one) { const n = $('#noteText').value.trim(); if (n) notes[k] = n; else delete notes[k]; }
+    }
+    await save({ tags, notes });
+    $('#infoModal').classList.add('hidden');
+    state.selected.clear();
+    render();
+  };
+}
+
+// Which Live sets use this plugin (from the Health session scan).
+async function showUsedIn(it) {
+  const r = await window.api.usedIn(it.name, it.vendor);
+  const note = noteOf(it) ? `<p class="note">📝 ${esc(noteOf(it))}</p>` : '';
+  if (!r.scanned) {
+    infoModal(it.name, `${note}<p>Noch keine Live-Sets eingelesen. Öffne <b>Health</b>, füge unter „Deine Sessions“ die Ordner mit deinen Projekten hinzu – dann steht hier, welche Sets dieses Plugin benutzen.</p>`);
+    return;
+  }
+  const date = (t) => new Date(t).toLocaleDateString();
+  infoModal(it.name, `${note}<p>${r.hits.length ? `In <b>${r.hits.length}</b> von ${r.scanned} Live-Sets:` : `In keinem deiner ${r.scanned} Live-Sets.`}</p>
+    <ul class="usedlist">${r.hits.map((h) => `<li data-f="${esc(h.file)}" title="${esc(h.file)}"><span>${esc(h.name)}</span><small>${date(h.mtime)}</small></li>`).join('')}</ul>
+    <p class="muted small">Nur Plugins (VST/AU), keine Stock-Devices. Klick zeigt das Set im Finder.</p>`);
+  $('#infoBody').querySelectorAll('[data-f]').forEach((el) => { el.onclick = () => window.api.showInFinder(el.dataset.f); });
+}
+
 // ---------- chains: several plugins loaded one after another onto one track ----------
 const chains = () => state.settings.chains || [];
 async function saveChains(list) { await save({ chains: list }); render(); }
@@ -263,7 +334,7 @@ const chainItem = (id) => items().find((x) => x.ids.includes(id));
 async function loadChain(c, newTrack = false) {
   const names = c.ids.map((id) => chainItem(id)?.name || '?');
   toast(`Lade Kette ${c.name}: ${names.join(' → ')} …`);
-  const r = await window.api.loadChain(c.ids, { newTrack });
+  const r = await window.api.loadChain(c.id, { newTrack });
   if (r.ok) toast(`✓ Kette ${c.name} geladen`);
   else toast(`Kette ${c.name} gestoppt bei ${names[r.at] || '?'}: ${r.error || ''}`, true);
 }
@@ -277,6 +348,9 @@ function renderChains() {
     li.title = c.ids.map((id) => chainItem(id)?.name || '?').join(' → ') + ' – Klick lädt, ⇧-Klick auf neuer Spur';
     li.innerHTML = `<span>⛓ ${esc(c.name)}</span><span>${c.ids.length}</span>`;
     li.onclick = (e) => loadChain(c, e.shiftKey);
+    // Drag a chain onto a key to load it with that key.
+    li.draggable = true;
+    li.ondragstart = (e) => e.dataTransfer.setData('text/plain', `chain:${c.id}`);
     li.oncontextmenu = (e) => { e.preventDefault(); showChainMenu(e, c); };
     // Drop a card onto a chain to append it.
     li.ondragover = (e) => { e.preventDefault(); li.classList.add('dropok'); };
@@ -416,6 +490,7 @@ function render() {
 
   renderCollections(all);
   renderChains();
+  renderTags(all);
   const coll = collections().find((c) => c.id === state.collection);
   const ofType = (state.type === 'All' ? all : all.filter((i) => i.type === state.type)).filter((i) => !coll || inColl(i, coll));
   const byVendor = (it) => !state.vendor || it.vendor === state.vendor;
@@ -425,7 +500,13 @@ function render() {
 
   const shown = ofType.filter((i) => byCat(i) && byVendor(i));
   const s = state.sort;
-  shown.sort((a, b) => (s === 'rating' ? ratingOf(b) - ratingOf(a) : s === 'name' ? 0 : String(a[s]).localeCompare(String(b[s]))) || a.name.localeCompare(b.name));
+  const by = {
+    rating: (a, b) => ratingOf(b) - ratingOf(a),
+    recent: (a, b) => statOf(b).last - statOf(a).last,
+    top: (a, b) => statOf(b).count - statOf(a).count || statOf(b).last - statOf(a).last,
+  }[s] || ((a, b) => (s === 'name' ? 0 : String(a[s]).localeCompare(String(b[s]))));
+  // While searching, the best matches come first.
+  shown.sort((a, b) => (state.query ? (b.score || 0) - (a.score || 0) : 0) || by(a, b) || a.name.localeCompare(b.name));
 
   const crumbs = [state.showHidden ? 'Ausgeblendete' : null, coll?.name, TYPE_LABELS[state.type], state.category, state.sub, state.vendor].filter(Boolean).join(' › ');
   $('#status').textContent = state.library.length
@@ -482,6 +563,7 @@ function card(it) {
     ${isNew(it) ? '<div class="newtag">NEU</div>' : ''}
     <div class="name" title="${esc(it.name)}">${esc(it.name)}</div>
     <div class="vendor">${esc(it.vendor)} ${starsHtml(ratingOf(it))}</div>
+    ${tagsOf(it).length ? `<div class="ctags">${tagsOf(it).map((t) => `<span>#${esc(t)}</span>`).join('')}</div>` : ''}
     <div class="badges"><span class="badge cat">${esc(it.sub && it.sub !== it.category ? it.sub : it.category)}</span>${it.formats.map((f) => `<span class="badge">${f}</span>`).join('')}</div>`;
   const img = el.querySelector('.thumb img');
   if (img) img.onerror = () => img.replaceWith(document.createTextNode(initials(it.name)));
@@ -510,7 +592,7 @@ function card(it) {
       return;
     }
     if (state.selected.size) { state.selected.clear(); render(); return; }
-    load(it, { newTrack: e.shiftKey });
+    load(it, e.altKey ? { replace: true } : { newTrack: e.shiftKey });
   };
   el.oncontextmenu = (e) => { e.preventDefault(); showMenu(e, it); };
   el.ondragstart = (e) => e.dataTransfer.setData('text/plain', it.id);
@@ -522,6 +604,7 @@ function renderKeyboard() {
   const st = state.settings;
   const layout = LAYOUTS[st.keyboardLayout] || LAYOUTS.full;
   const byId = new Map(state.library.map((p) => [p.id, p]));
+  for (const c of chains()) byId.set(`chain:${c.id}`, { id: `chain:${c.id}`, name: `⛓ ${c.name}` });
   kb.innerHTML = '';
   for (const block of layout.blocks) {
     const b = document.createElement('div');
@@ -593,10 +676,10 @@ function showKeyMenu(e, keyId, m, p) {
 
 // ---------- actions ----------
 async function load(it, opts = {}) {
-  toast(`Lade ${it.name}${opts.newTrack ? ' auf neue Spur' : ''} …`);
+  toast(opts.replace ? `Ersetze durch ${it.name} …` : `Lade ${it.name}${opts.newTrack ? ' auf neue Spur' : ''} …`);
   const r = await window.api.loadPlugin(it.id, opts);
   if (r.ok) toast(`✓ ${it.name} geladen`);
-  else if (r.error && r.error.startsWith('Indexierung')) toast(r.error, true);
+  else if (r.error && (r.error.startsWith('Indexierung') || opts.replace)) toast(r.error, true);
 }
 
 async function assign(key, id) {
@@ -606,7 +689,7 @@ async function assign(key, id) {
   mappings[key] = { id, newTrack };
   state.assigning = null;
   await save({ mappings });
-  const p = state.library.find((x) => x.id === id);
+  const p = state.library.find((x) => x.id === id) || (id.startsWith('chain:') && { name: `⛓ ${chains().find((c) => `chain:${c.id}` === id)?.name}` });
   toast(`${p?.name} → Taste ${keyLabel(key)}`);
   render();
 }
@@ -636,14 +719,14 @@ function showMenu(e, clicked) {
   const catNames = Object.keys(cats).sort((a, b) => (a === 'Unsorted') - (b === 'Unsorted') || a.localeCompare(b));
   const otherTypes = ['Effect', 'Instrument', 'MIDI FX'].filter((t) => t !== it.type);
   const hostable = it.formats.some((f) => f === 'AU' || f === 'VST3') && state.snapshotsAvailable;
-  const liveCapturable = !hostable && state.liveIndexAvailable && it.source !== 'Preset';
+  const liveCapturable = !hostable && state.liveIndexAvailable;
 
   m.innerHTML = `
     <div class="mhead">
       ${multi ? `<div class="mthumb mcount">${targets.length}</div>` : pic ? `<img class="mthumb" src="${imgUrl(pic)}">` : `<div class="mthumb">${esc(initials(it.name))}</div>`}
       <div><b>${multi ? `${targets.length} Plugins ausgewählt` : esc(it.name)}</b><span>${multi ? esc(targets.slice(0, 3).map((t) => t.name).join(', ')) + (targets.length > 3 ? ' …' : '') : `${esc(it.vendor)} · ${esc(it.formats.join(', '))}`}</span></div>
     </div>
-    ${!multi ? `<div data-a="load">In Live laden</div><div data-a="loadnew">Auf neuer Spur laden</div>` : ''}
+    ${!multi ? `<div data-a="load">In Live laden</div><div data-a="loadnew">Auf neuer Spur laden</div><div data-a="replace">Ausgewähltes Device ersetzen<small>⌥-Klick · nur mit Live-Skript</small></div>` : ''}
     <hr>
     <div class="msub">Bewertung</div>
     <div class="mchips">
@@ -686,6 +769,8 @@ function showMenu(e, clicked) {
     </div>
     ${!multi ? '<div data-a="selectmode">Mehrere umkategorisieren …</div>' : '<div data-a="clearsel">Auswahl aufheben</div>'}
     <hr>
+    ${!multi ? `<div data-a="notes">Notiz &amp; Tags …${noteOf(it) || tagsOf(it).length ? ' ✓' : ''}</div><div data-a="usedin">In welchen Live-Sets?</div>` : '<div data-a="notes">Tags hinzufügen …</div>'}
+    <hr>
     <div class="msub">Bild</div>
     ${hostable || liveCapturable ? `<div data-a="shot">${shotFor(it) ? 'Neu aufnehmen' : 'Aufnehmen'}${liveCapturable ? ' (in Live)' : ''}</div>` : ''}
     ${!multi ? '<div data-a="image">Eigenes Bild wählen …</div>' : ''}
@@ -721,6 +806,9 @@ function showMenu(e, clicked) {
     m.classList.add('hidden');
     if (a === 'load') load(it);
     if (a === 'loadnew') load(it, { newTrack: true });
+    if (a === 'replace') load(it, { replace: true });
+    if (a === 'notes') { editNotes(targets); return; }
+    if (a === 'usedin') { showUsedIn(it); return; }
     if (a === 'newcoll') { newCollection({ name: multi ? `${targets.length} Plugins` : it.name, ids }); return; }
     if (a === 'rate') {
       const ratings = { ...(st.ratings || {}) };
@@ -1040,6 +1128,7 @@ function renderSettings() {
   window.api.autostartGet().then((on) => { $('#setAutostart').checked = on; });
   $('#setVersion').textContent = state.version || '';
   $('#setToggleKey').textContent = accelLabel(st.toggleKey);
+  $('#setQuickKey').textContent = accelLabel(st.quickKey);
   $('#hideKey').textContent = accelLabel(st.toggleKey);
   $('#hideKey').classList.toggle('hidden', !st.toggleKey);
 }
@@ -1165,9 +1254,9 @@ $('#updInstall').onclick = async () => {
   if (!r.ok) { $('#updText').textContent = `Update fehlgeschlagen: ${r.error}`; $('#updInstall').disabled = false; }
   else $('#updText').textContent = 'Update installiert – die App startet neu …';
 };
-// Record a key combination for the toggle key.
-$('#setToggleKey').onclick = () => {
-  const b = $('#setToggleKey');
+// Record a key combination for a global key (show/hide, quick search).
+const recordKey = (btn, field, label) => () => {
+  const b = $(btn);
   b.classList.add('recording');
   b.textContent = 'Taste drücken …';
   const onKey = async (e) => {
@@ -1180,12 +1269,15 @@ $('#setToggleKey').onclick = () => {
     const key = keyIdFromEvent(e);
     if (!key) { toast('Diese Taste geht nicht – nimm z. B. eine F-Taste, Bild↑/↓ oder eine Kombination mit ⌘/⌃/⌥', true); renderSettings(); return; }
     const mods = [e.ctrlKey && 'Control', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && 'Command'].filter(Boolean);
-    await save({ toggleKey: [...mods, key].join('+') });
+    await save({ [field]: [...mods, key].join('+') });
     renderSettings();
-    toast(`Ein-/Ausblenden: ${accelLabel(state.settings.toggleKey)}`);
+    toast(`${label}: ${accelLabel(state.settings[field])}`);
   };
   window.addEventListener('keydown', onKey, true);
 };
+$('#setToggleKey').onclick = recordKey('#setToggleKey', 'toggleKey', 'Ein-/Ausblenden');
+$('#setQuickKey').onclick = recordKey('#setQuickKey', 'quickKey', 'Schnellsuche');
+$('#clearQuickKey').onclick = async () => { await save({ quickKey: '' }); renderSettings(); };
 
 window.api.on('window-mode', (m) => { if (m !== state.windowMode) { state.windowMode = m; applyModeClass(); render(); } });
 window.api.on('liveindex', (u) => {

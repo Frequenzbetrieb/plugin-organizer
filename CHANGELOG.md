@@ -2,6 +2,17 @@
 
 Alle Änderungen am Frequenzbetrieb Plugin Organizer. Downloads zu jeder Version: [Releases](https://github.com/Frequenzbetrieb/plugin-organizer/releases).
 
+## [0.11.0] – 2026-10-13
+- **Schnellsuche über Live:** globale Taste (Standard ⌃⌥Leertaste) öffnet ein kleines Suchfenster über Live – tippen, Enter lädt, ⇧ neue Spur, ⌥ ersetzen. Ohne Eingabe: zuletzt und meist geladen, Ketten.
+- **Zuletzt geladen / Meistgeladen:** als Sortierung, in der Schnellsuche, auf dem Stream Deck und auf dem Handy.
+- **Tippfehler-tolerante Suche:** „proq“ findet Pro-Q 3, „valhala“ findet Valhalla; durchsucht auch Tags und Notizen, beste Treffer zuerst.
+- **Ketten überall:** auf Tasten der Bildschirmtastatur ziehen, auf dem Stream Deck (Übersicht und „Plugin laden“) und auf dem Handy.
+- **Notizen & Tags** pro Plugin (Rechtsklick), Tag-Filter in der linken Leiste.
+- **„In welchen Live-Sets?“** im Rechtsklick-Menü – zeigt, welche Sets ein Plugin benutzen.
+- **Device ersetzen:** ⌥-Klick oder Rechtsklick tauscht das in Live ausgewählte Device an derselben Stelle aus (Live-Skript nötig).
+- **Bilder für Racks & Presets** aus Favoriten, Sammlungen, Ketten und Tasten bei „Alle Bilder“ bzw. per Rechtsklick.
+- Sicherung enthält jetzt auch Ketten, Bewertungen, Notizen, Tags und Sprache.
+
 ## [0.10.0] – 2026-10-13
 - **Bebildertes Handbuch** auf Deutsch und Englisch, in der App mitgeliefert: Knopf **?** in der Werkzeugleiste oder Einstellungen → Handbuch. Funktioniert auch ohne Internet.
 

@@ -13,7 +13,7 @@ import Live
 from _Framework.ControlSurface import ControlSurface
 
 PORT = 47330
-VERSION = 3
+VERSION = 4
 FORMAT_FOLDERS = {"AU": ("audio units", "au"), "VST": ("vst", "vst2"), "VST3": ("vst3",)}
 
 
@@ -28,6 +28,7 @@ class Organizer(ControlSurface):
         ControlSurface.__init__(self, c_instance)
         self._plugins = None  # norm(name) → [(item, folder names)]
         self._remembered = None  # (track, ids of devices before the load) for "unload"
+        self._replace = None  # (track, device id) to delete once the replacement is in
         self._sock = None
         try:
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -47,6 +48,14 @@ class Organizer(ControlSurface):
     # Live calls this about every 100 ms on its main thread – the safe place to touch the API.
     def update_display(self):
         ControlSurface.update_display(self)
+        if self._replace:
+            # Replacing: the new device sits right after the old one now – remove the old one.
+            track, ptr = self._replace
+            self._replace = None
+            for i, d in enumerate(track.devices):
+                if d._live_ptr == ptr:
+                    track.delete_device(i)
+                    break
         if not self._sock:
             return
         for _ in range(10):
@@ -96,6 +105,15 @@ class Organizer(ControlSurface):
                 return {"ok": False, "error": "notfound"}
             new_track = req.get("newTrack")
             song = self.song()
+            if req.get("replace"):
+                # Load right after the selected device (Live inserts after the selection), then delete that one.
+                track = song.view.selected_track
+                old = track.view.selected_device
+                if old is None:
+                    return {"ok": False, "error": "nodevice"}
+                self.application().browser.load_item(item)
+                self._replace = (track, old._live_ptr)
+                return {"ok": True, "name": item.name, "replaced": old.name}
             if new_track == "midi":
                 song.create_midi_track(-1)
             elif new_track == "audio":

@@ -15,10 +15,13 @@
   <a href="#bilder">Pictures for all plugins</a>
   <a href="#laden">Loading into Live</a>
   <a class="sub" href="#liveskript">Setting up the Live script</a>
+  <a class="sub" href="#schnellsuche">Quick search over Live</a>
+  <a class="sub" href="#ersetzen">Replacing a device</a>
   <a href="#ordnung">Organising &amp; finding</a>
   <a class="sub" href="#menu">Right-click menu</a>
   <a class="sub" href="#sammlungen">Collections &amp; favourites</a>
   <a class="sub" href="#bewertung">Rating</a>
+  <a class="sub" href="#notizen">Notes &amp; tags</a>
   <a href="#ketten">Chains</a>
   <a href="#tasten">Plugins on keys</a>
   <a href="#ansichten">Full, Sidecar, Mini</a>
@@ -68,13 +71,15 @@
   </ol>
   <p>While it runs, the button turns into <span class="ui">Stop</span> and shows the progress. Existing pictures are kept; only missing ones are taken.</p>
   <div class="tip"><b>Important for step 2:</b> open an <b>empty set</b> in Live, select an empty MIDI track and <b>keep Live in front</b>. Don't touch mouse or keyboard while Live's turn is running. In Live's settings → Plug-Ins, “Auto-Open Plug-In Windows” should be on.</div>
+  <p><b>Racks and presets</b> get their own picture once they're in your favourites, collections, chains or on a key – “All pictures” then includes them (all ~10,000 would be too many). Photograph single ones with right-click → Take picture.</p>
   <p>Below the filters on the left, <span class="ui">▢ No picture</span> shows how many pictures are still missing – tick it to see exactly those plugins. Photograph single plugins with right-click → <span class="ui">Take picture</span>, or pick any image with <span class="ui">Choose own picture …</span>.</p>
 
   <h2 id="laden">Loading into Live</h2>
   <ul>
     <li><b>Click</b> a tile to load the plugin onto the <b>selected track</b> in Live.</li>
     <li><b><kbd>⇧</kbd>-click</b> creates a <b>new track</b> first – MIDI for instruments, audio for effects.</li>
-    <li>Or: right-click → <span class="ui">Load in Live</span> / <span class="ui">Load on new track</span>, a <a href="#tasten">key</a>, the <a href="#streamdeck">Stream Deck</a> or your <a href="#fernbedienung">phone</a>.</li>
+    <li><b><kbd>⌥</kbd>-click</b> <a href="#ersetzen">replaces</a> the device selected in Live.</li>
+    <li>Or: right-click → <span class="ui">Load in Live</span> / <span class="ui">Load on new track</span>, the <a href="#schnellsuche">quick search</a>, a <a href="#tasten">key</a>, the <a href="#streamdeck">Stream Deck</a> or your <a href="#fernbedienung">phone</a>.</li>
   </ul>
 
   <h3 id="liveskript">Setting up the Live script</h3>
@@ -86,6 +91,21 @@
   </ol>
   <figure class="small"><img src="img/en/guide.jpg" alt=""><figcaption>The guide in the app keeps checking and shows ✓ as soon as the script is active.</figcaption></figure>
   <p>You can see the status any time under ⚙ Settings → <span class="ui">Live script</span>. Without the script the Organizer loads via Live's search – that works too, just slower.</p>
+
+  <h3 id="schnellsuche">Quick search over Live</h3>
+  <p>The quick search key (default <kbd>⌃⌥Space</kbd>) opens a small search window right over Live – the app doesn't need to be in front:</p>
+  <div class="row">
+    <figure class="small"><img src="img/en/quick.jpg" alt=""><figcaption>Without typing: recent and most loaded, your chains</figcaption></figure>
+    <figure class="small"><img src="img/en/quick2.jpg" alt=""><figcaption>Typos are fine: “valhala” finds Valhalla</figcaption></figure>
+  </div>
+  <ul>
+    <li>Type, pick with <kbd>↑</kbd>/<kbd>↓</kbd>, <kbd>Enter</kbd> loads – <kbd>⇧</kbd><kbd>Enter</kbd> on a new track, <kbd>⌥</kbd><kbd>Enter</kbd> replaces the selected device, <kbd>Esc</kbd> closes.</li>
+    <li>Live is back in front right away.</li>
+    <li>Change the key under ⚙ Settings → <span class="ui">Quick search key</span>.</li>
+  </ul>
+
+  <h3 id="ersetzen">Replacing a device</h3>
+  <p>Instead of adding a plugin, you can <b>swap the device selected in Live</b> – the new one lands in exactly the same place in the chain: <kbd>⌥</kbd>-click a tile, right-click → <span class="ui">Replace selected device</span>, or <kbd>⌥</kbd><kbd>Enter</kbd> in the quick search. The <a href="#liveskript">Live script</a> must be active.</p>
 
   <h2 id="ordnung">Organising &amp; finding</h2>
   <div class="row">
@@ -99,6 +119,8 @@
         <li><b>Category</b> with subcategories (e.g. Dynamics › Compressor) and <b>vendors</b>.</li>
       </ul>
       <p>Newly installed plugins are detected automatically and marked <b>NEW</b> for 14 days.</p>
+      <p><b>The search is forgiving:</b> spaces and dashes don't matter (“proq” → Pro-Q 3), word starts count, one typo per word is fine – and it searches your tags and notes too. The best matches come first.</p>
+      <p><b>Sort order</b> at the top: name, vendor, category, rating, <b>recently loaded</b> or <b>most loaded</b>.</p>
     </div>
   </div>
 
@@ -124,6 +146,15 @@
   <h3 id="bewertung">Rating</h3>
   <p>Right-click → <b>Rating</b> gives 1 to 5 stars; they appear on the tile next to the vendor. <span class="ui">Rating</span> in the sort menu at the top brings your favourites to the front.</p>
 
+  <h3 id="notizen">Notes &amp; tags</h3>
+  <div class="row">
+    <figure class="small"><img src="img/en/notes.jpg" alt=""></figure>
+    <div style="flex:1;min-width:280px">
+      <p>Right-click → <span class="ui">Note &amp; tags …</span>: note what a plugin is good for (“great on vocals”, “CPU-hungry”) and add tags. Tags show on the tile and on the left under <b>Tags</b> – a click filters by them. With several plugins selected you add tags to all at once. The search finds notes and tags too.</p>
+      <p><b>Used in which Live sets?</b> – also in the right-click menu: shows which of your sets use the plugin (from the folders you added in <a href="#health">Health</a>). Handy before uninstalling something.</p>
+    </div>
+  </div>
+
   <h2 id="ketten">Chains</h2>
   <p>A chain is several plugins loaded one after another onto <b>one</b> track – for example <i>EQ → compressor → de-esser → reverb</i> for vocals.</p>
   <div class="row">
@@ -134,6 +165,7 @@
         <li><b>Extend:</b> right-click a plugin → Add to chain → pick the chain, or drag the tile onto the chain.</li>
         <li><b>Load:</b> click the chain on the left; <kbd>⇧</kbd>-click loads it onto a new track.</li>
         <li><b>Edit:</b> right-click the chain – ↑ moves up, ✕ removes.</li>
+        <li><b>On a key:</b> drag the chain onto a key of the on-screen keyboard. Chains are also in the quick search, on the Stream Deck and on your phone.</li>
       </ol>
     </div>
   </div>
@@ -175,6 +207,7 @@
         <li>Or the <b>“Open browser”</b> action: one press opens a browser on the deck – 12 keys with pictures, ◀ ▶ on the right to page and ↩ to go back.</li>
       </ol>
       <p>A <b>short press</b> loads onto the selected track, a <b>long press</b> (½ s) onto a new one. The Organizer needs to be running.</p>
+      <p>The overview also has <b>Recent</b>, <b>Most used</b> and your <b>chains</b>; “Load plugin” can put a chain on a key, too.</p>
     </div>
   </div>
 
@@ -188,6 +221,7 @@
         <li>macOS asks once about incoming connections → <b>Allow</b>.</li>
         <li><b>Scan the QR code</b> with your camera – the plugin browser opens in the web browser.</li>
       </ol>
+      <p>On the start page: areas, <b>recently loaded</b>, <b>most used</b>, favourites, collections and your <b>chains</b> (one tap loads the whole chain).</p>
       <p>Tap to load into Live; the <span class="ui">＋ New track</span> switch creates a new track first. No app needed, just the same Wi-Fi. Tip for iPhone/iPad: in Safari “Share → Add to Home Screen”.</p>
       <p>Access only works with the secret key from the QR code. <span class="ui">Create new code</span> invalidates old links.</p>
     </div>
@@ -202,7 +236,7 @@
     <figure class="small"><img src="img/en/settings.jpg" alt=""></figure>
     <div style="flex:1;min-width:280px">
       <ul>
-        <li><b>Always on top</b>, <b>show/hide key</b>, <b>hide after loading</b></li>
+        <li><b>Always on top</b>, <b>show/hide key</b>, <b>quick search key</b>, <b>hide after loading</b></li>
         <li><b>Language:</b> automatic, Deutsch or English</li>
         <li><b>Start at login</b></li>
         <li><b>Live script:</b> status, guide, install</li>
@@ -217,7 +251,7 @@
   <h3 id="sichern">Backup &amp; reset</h3>
   <figure class="small"><img src="img/en/settings2.jpg" alt=""></figure>
   <ul>
-    <li><span class="ui">Back up …</span> writes keys, favourites, collections, chains, ratings, categories, own pictures, all plugin pictures and settings into <b>one file</b> (.pobackup).</li>
+    <li><span class="ui">Back up …</span> writes keys, favourites, collections, chains, ratings, notes, tags, categories, own pictures, all plugin pictures and settings into <b>one file</b> (.pobackup).</li>
     <li><span class="ui">Restore …</span> brings it back – on another computer, too.</li>
     <li><span class="ui">Reset …</span> deletes the plugin list, pictures and settings and starts like a fresh install. The Organizer asks first and offers a backup. Your plugins and Live are not touched.</li>
   </ul>

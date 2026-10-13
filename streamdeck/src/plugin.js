@@ -119,7 +119,12 @@ async function fromInspector(msg) {
   };
   if (payload.event === 'search') {
     const r = await api('GET', `/plugins?${query()}&limit=500`);
-    reply({ event: 'results', offline: Boolean(r.offline), plugins: r.plugins || [], total: r.total || 0 });
+    // Chains can go on a key too (shown first, without type/source filter).
+    const c = !payload.type && !payload.source && !payload.category ? await api('GET', '/chains') : {};
+    const q = (payload.q || '').toLowerCase();
+    const chains = (c.chains || []).filter((x) => !q || x.name.toLowerCase().includes(q))
+      .map((x) => ({ id: x.id, name: `⛓ ${x.name}`, vendor: T('Kette', 'Chain'), category: `${x.count} Plugins`, source: 'Chain', formats: [] }));
+    reply({ event: 'results', offline: Boolean(r.offline), plugins: [...chains, ...(r.plugins || [])], total: (r.total || 0) + chains.length });
   }
   if (payload.event === 'facets') {
     const r = await api('GET', `/facets?${query()}`);
@@ -162,7 +167,9 @@ async function loadLevel(device) {
       { kind: 'group', label: 'Stock', params: { source: 'Stock' } },
       { kind: 'group', label: 'Max', params: { source: 'Max' } },
       { kind: 'group', label: 'Presets', params: { source: 'Preset' } },
+      ...(r.loaded ? [{ kind: 'list', label: T('Zuletzt', 'Recent'), params: { order: 'recent' } }, { kind: 'list', label: T('Meistgeladen', 'Most used'), params: { order: 'top' } }] : []),
       ...(r.favorites ? [{ kind: 'list', label: T('★ Favoriten', '★ Favourites'), params: { favorites: '1' } }] : []),
+      ...(r.chains || []).map((c) => ({ kind: 'plugin', label: `⛓ ${c.name}`, id: c.id })),
       ...(r.collections || []).filter((c) => c.count).map((c) => ({ kind: 'list', label: c.name, params: { collection: c.id } })),
     ];
   } else if (b.level === 'categories') {

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Schnellsuche</title>
+  <style>
+    :root { --bg: #1b1d23; --card: #23262f; --line: #2e313b; --text: #e8e8ec; --muted: #8b8f9c; --accent: #ff7a3d; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+    body { display: flex; flex-direction: column; border: 1px solid var(--accent); border-radius: 12px; }
+    .top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
+    .top span { font-size: 20px; color: var(--accent); }
+    #q { flex: 1; background: transparent; border: 0; outline: 0; color: var(--text); font-size: 20px; -webkit-app-region: no-drag; }
+    #list { flex: 1; overflow-y: auto; padding: 6px; }
+    .head { color: var(--muted); font-size: 11px; letter-spacing: .6px; text-transform: uppercase; padding: 8px 8px 4px; }
+    .row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+    .row.sel { background: var(--accent); color: #111; }
+    .row.sel small { color: #331; }
+    .thumb { width: 64px; height: 40px; border-radius: 5px; background: #14151a center / cover no-repeat; flex: none; display: grid; place-items: center; font-weight: 700; color: #ffffff55; font-size: 13px; }
+    .row b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .row .txt { flex: 1; min-width: 0; }
+    .row .tag { font-size: 11px; color: var(--accent); }
+    .row.sel .tag { color: #111; }
+    .empty { color: var(--muted); padding: 20px; text-align: center; }
+    .foot { display: flex; gap: 14px; padding: 7px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font: 11px -apple-system, sans-serif; color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="top"><span>⌕</span><input id="q" placeholder="Plugin suchen …" autocomplete="off" spellcheck="false"></div>
+  <div id="list"></div>
+  <div class="foot"><span><kbd>↵</kbd> laden</span><span><kbd>⇧↵</kbd> neue Spur</span><span><kbd>⌥↵</kbd> ersetzen</span><span><kbd>esc</kbd> schließen</span></div>
+  <script src="i18n.js"></script>
+  <script src="../search.js"></script>
+  <script src="shotkey.js"></script>
+  <script>
+    I18N.setLang(new URLSearchParams(location.search).get('lang'));
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const gk = (e) => `${e.name.toLowerCase()}|${e.vendor.toLowerCase()}`;
+    const initials = (n) => n.split(/[\s\-_]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+    let data = { entries: [], shots: {}, settings: {} };
+    let rows = [];
+    let sel = 0;
+    let loose = null;
+
+    function picture(e) {
+      const st = data.settings;
+      const own = e.ids.map((id) => st.images?.[id]).find(Boolean);
+      if (own) return own;
+      const v = data.shots[gk(e)];
+      if (v && v !== 'failed') return v;
+      if (!loose) loose = window.ShotKey.buildIndex(data.shots);
+      return loose.get(window.ShotKey.looseKey(e.name, e.vendor))
+        || (e.source === 'Preset' && e.device ? picture({ ids: [], name: e.device, vendor: 'Ableton' }) : null);
+    }
+    const imgUrl = (p) => `pimg://img/?p=${encodeURIComponent(p)}`;
+
+    async function refresh() {
+      data = await window.api.quickData();
+      loose = null;
+      render();
+    }
+
+    function render() {
+      const q = $('#q').value.trim();
+      const st = data.settings;
+      const stat = (e) => (st.loadStats || {})[gk(e)] || { count: 0, last: 0 };
+      const tags = (e) => (st.tags || {})[gk(e)] || [];
+      let sections;
+      if (!q) {
+        const loaded = data.entries.filter((e) => stat(e).count);
+        const recent = [...loaded].sort((a, b) => stat(b).last - stat(a).last).slice(0, 6);
+        const ids = new Set(recent.map((e) => e.id));
+        const top = [...loaded].sort((a, b) => stat(b).count - stat(a).count).filter((e) => !ids.has(e.id)).slice(0, 6);
+        const chains = (st.chains || []).map((c) => ({ chain: true, id: `chain:${c.id}`, ids: [], name: `⛓ ${c.name}`, vendor: `${c.ids.length} Plugins`, first: data.entries.find((e) => e.ids.includes(c.ids[0])) }));
+        sections = [['Zuletzt geladen', recent], ['Meistgeladen', top], ['Ketten', chains]];
+        if (!loaded.length && !chains.length) sections = [['Tippen zum Suchen', []]];
+      } else {
+        const hits = data.entries
+          .map((e) => ({ e, s: window.Search.score({ ...e, extra: `${tags(e).join(' ')} ${(st.notes || {})[gk(e)] || ''} ${e.format}` }, q) }))
+          .filter((x) => x.s > 0)
+          .sort((a, b) => b.s - a.s || stat(b.e).count - stat(a.e).count || a.e.name.localeCompare(b.e.name))
+          .slice(0, 40).map((x) => x.e);
+        const chains = (st.chains || []).filter((c) => window.Search.score({ name: c.name }, q) > 0)
+          .map((c) => ({ chain: true, id: `chain:${c.id}`, ids: [], name: `⛓ ${c.name}`, vendor: `${c.ids.length} Plugins`, first: data.entries.find((e) => e.ids.includes(c.ids[0])) }));
+        sections = [['', [...chains, ...hits]]];
+      }
+      rows = sections.flatMap(([, list]) => list);
+      sel = Math.min(sel, Math.max(0, rows.length - 1));
+      let i = 0;
+      $('#list').innerHTML = sections.map(([title, list]) => (list.length || !q ? `${title ? `<div class="head">${esc(title)}</div>` : ''}${list.map((e) => {
+        const pic = e.chain ? (e.first && picture(e.first)) : picture(e);
+        const t = e.chain ? [] : tags(e);
+        return `<div class="row${i === sel ? ' sel' : ''}" data-i="${i++}"><div class="thumb" ${pic ? `style="background-image:url('${imgUrl(pic)}')"` : ''}>${pic ? '' : esc(initials(e.name.replace('⛓ ', '')))}</div>
+          <div class="txt"><b>${esc(e.name)}</b><small>${esc(e.vendor)}${e.sub ? ` · ${esc(e.sub)}` : ''} ${t.map((x) => `<span class="tag">#${esc(x)}</span>`).join(' ')}</small></div></div>`;
+      }).join('')}` : '')).join('') || `<div class="empty">Nichts gefunden.</div>`;
+      $('#list').querySelectorAll('[data-i]').forEach((el) => {
+        el.onclick = (ev) => go(Number(el.dataset.i), ev);
+        el.onmousemove = () => { if (sel !== Number(el.dataset.i)) { sel = Number(el.dataset.i); mark(); } };
+      });
+    }
+    function mark() {
+      $('#list').querySelectorAll('[data-i]').forEach((el) => el.classList.toggle('sel', Number(el.dataset.i) === sel));
+      $('#list').querySelector('.sel')?.scrollIntoView({ block: 'nearest' });
+    }
+
+    async function go(i, ev) {
+      const e = rows[i];
+      if (!e) return;
+      const opts = ev.altKey && !e.chain ? { replace: true } : { newTrack: ev.shiftKey };
+      window.api.quickHide();
+      $('#q').value = '';
+      const r = await window.api.loadPlugin(e.id, opts);
+      if (!r.ok && r.error) new Notification('Plugin Organizer', { body: r.error });
+    }
+
+    $('#q').oninput = () => { sel = 0; render(); };
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') { window.api.quickHide(); return; }
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); sel = Math.max(0, Math.min(rows.length - 1, sel + (ev.key === 'ArrowDown' ? 1 : -1))); mark(); }
+      if (ev.key === 'Enter') { ev.preventDefault(); go(sel, ev); }
+    });
+    window.api.on('quick-open', () => { $('#q').value = ''; sel = 0; refresh(); $('#q').focus(); });
+    refresh();
+    $('#q').focus();
+  </script>
+</body>
+</html>

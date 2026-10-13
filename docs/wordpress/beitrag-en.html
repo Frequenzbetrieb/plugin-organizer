@@ -62,6 +62,58 @@
 
 <p>The Health view shows how much space your plugins take and how much you can get back: plugins that only run under Rosetta, VST2 copies of plugins you already have as VST3, AAX files without Pro Tools, and plugins you never use. It even reads your Live sets and tells you which plugins in them are missing on this machine.</p>
 
+<h2>What's new?</h2>
+
+<p>The latest versions at a glance – this list updates itself:</p>
+
+<!-- wp:html -->
+<div class="po-changelog" data-lang="en" data-count="5">Loading changelog …</div>
+<style>
+  .po-changelog { border: 1px solid rgba(128,128,128,.3); border-radius: 10px; padding: 14px 18px; }
+  .po-changelog h4 { margin: 14px 0 4px; font-size: 1.05em; }
+  .po-changelog h4:first-child { margin-top: 0; }
+  .po-changelog h4 small { font-weight: normal; opacity: .65; margin-left: 6px; }
+  .po-changelog ul { margin: 0 0 6px 1.1em; padding: 0; }
+  .po-changelog li { margin: 3px 0; }
+  .po-changelog .po-latest { display: inline-block; font-size: .75em; font-weight: 700; padding: 1px 7px; border-radius: 99px; background: #ff7a3d; color: #111; margin-left: 6px; vertical-align: 2px; }
+  .po-changelog .po-all { display: block; margin-top: 8px; font-size: .9em; }
+</style>
+<script>
+(function () {
+  document.querySelectorAll('.po-changelog').forEach(async function (box) {
+    var en = box.getAttribute('data-lang') === 'en';
+    var count = Number(box.getAttribute('data-count')) || 5;
+    var repo = 'https://github.com/Frequenzbetrieb/plugin-organizer';
+    var file = en ? 'CHANGELOG.en.md' : 'CHANGELOG.md';
+    var esc = function (s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    // Tiny Markdown: **bold**, [text](link).
+    var inline = function (s) {
+      return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    };
+    try {
+      var res = await fetch('https://raw.githubusercontent.com/Frequenzbetrieb/plugin-organizer/main/' + file, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(res.status);
+      var text = await res.text();
+      var sections = text.split(/^## /m).slice(1, count + 1);
+      box.innerHTML = sections.map(function (sec, i) {
+        var lines = sec.split('\n');
+        var head = lines[0].match(/^\[([^\]]+)\]\s*[–-]?\s*(.*)$/) || [null, lines[0], ''];
+        var items = lines.slice(1).filter(function (l) { return /^\s*-\s+/.test(l); })
+          .map(function (l) { return '<li>' + inline(l.replace(/^\s*-\s+/, '')) + '</li>'; }).join('');
+        return '<h4>Version ' + esc(head[1]) + (i === 0 ? '<span class="po-latest">' + (en ? 'latest' : 'aktuell') + '</span>' : '')
+          + (head[2] ? '<small>' + esc(head[2]) + '</small>' : '') + '</h4><ul>' + items + '</ul>';
+      }).join('') + '<a class="po-all" href="' + repo + '/blob/main/' + file + '" target="_blank" rel="noopener">'
+        + (en ? 'Full changelog →' : 'Alle Versionen →') + '</a>';
+    } catch (e) {
+      box.innerHTML = '<a href="' + repo + '/blob/main/' + file + '" target="_blank" rel="noopener">'
+        + (en ? 'Show the changelog on GitHub →' : 'Versionsgeschichte auf GitHub ansehen →') + '</a>';
+    }
+  });
+})();
+</script>
+<!-- /wp:html -->
+
 <h2>Download</h2>
 
 <p><strong>Plugin Organizer for macOS (Apple Silicon &amp; Intel):</strong><br>

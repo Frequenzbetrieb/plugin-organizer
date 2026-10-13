@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { nativeImage } = require('electron');
 const { looseKey, buildIndex } = require('./shotkey');
+const search = require('./search');
 
 const PORTS = [47321, 47322, 47323, 47324];
 const groupKey = (p) => `${p.name.toLowerCase()}|${p.vendor.toLowerCase()}`;
@@ -123,14 +124,17 @@ async function route(ctx, req, res, url) {
         const category = url.searchParams.get('category');
         const collection = url.searchParams.get('collection');
         const favorites = url.searchParams.get('favorites') === '1';
-        const q = (url.searchParams.get('q') || '').toLowerCase().split(/\s+/).filter(Boolean);
+        const query = url.searchParams.get('q') || '';
+        const q = query.toLowerCase().split(/\s+/).filter(Boolean);
         const st = ctx.getSettings();
+        const gk = (e) => `${e.name.toLowerCase()}|${e.vendor.toLowerCase()}`;
+        const scoreOf = (e) => search.score({ ...e, extra: `${((st.tags || {})[gk(e)] || []).join(' ')} ${(st.notes || {})[gk(e)] || ''}` }, query);
         const coll = collection && (st.collections || []).find((c) => c.id === collection);
         const favs = new Set(st.favorites || []);
         const list = entries(ctx).filter((e) => (!type || e.type === type) && (source ? e.source === source : e.source !== 'Preset' || coll || favorites)
           && (!coll || e.ids.some((id) => coll.ids.includes(id)))
           && (!favorites || e.ids.some((id) => favs.has(id)))
-          && q.every((t) => `${e.name} ${e.vendor} ${e.category} ${e.sub}`.toLowerCase().includes(t)));
+          && (!q.length || (e.score = scoreOf(e)) > 0));
         return { list, category, q };
       };
       if (req.method === 'GET' && url.pathname === '/collections') {
@@ -139,7 +143,10 @@ async function route(ctx, req, res, url) {
         const all = entries(ctx);
         const favs = new Set(st.favorites || []);
         const collections = (st.collections || []).map((c) => ({ id: c.id, name: c.name, color: c.color, count: all.filter((e) => e.ids.some((id) => c.ids.includes(id))).length }));
-        return json(res, 200, { favorites: all.filter((e) => e.ids.some((id) => favs.has(id))).length, collections });
+        const stats = st.loadStats || {};
+        const loaded = all.filter((e) => stats[`${e.name.toLowerCase()}|${e.vendor.toLowerCase()}`]?.count).length;
+        const chains = (st.chains || []).map((c) => ({ id: `chain:${c.id}`, name: c.name, count: c.ids.length }));
+        return json(res, 200, { favorites: all.filter((e) => e.ids.some((id) => favs.has(id))).length, collections, loaded, chains });
       }
       if (req.method === 'GET' && url.pathname === '/groupimage') {
         // Sample picture for a group (type/source/category/collection): the first plugin in it that has one.
@@ -175,14 +182,26 @@ async function route(ctx, req, res, url) {
           inCat = [...best.values()];
         }
         // Name matches first (starting with the query before containing it), then vendor/category matches.
-        const j = q.join(' ');
-        const rank = (e) => { const n = e.name.toLowerCase(); return !q.length ? 0 : n.startsWith(j) ? 0 : n.includes(j) ? 1 : q.every((t) => n.includes(t)) ? 2 : 3; };
+        // order=recent|top: recently / most loaded (only what was loaded at least once).
+        const order = url.searchParams.get('order');
+        const stats = ctx.getSettings().loadStats || {};
+        const stat = (e) => stats[`${e.name.toLowerCase()}|${e.vendor.toLowerCase()}`] || { count: 0, last: 0 };
+        if (order) inCat = inCat.filter((e) => stat(e).count > 0);
+        const cmp = order === 'recent' ? (a, b) => stat(b).last - stat(a).last
+          : order === 'top' ? (a, b) => stat(b).count - stat(a).count || stat(b).last - stat(a).last
+            : (a, b) => (q.length ? (b.score || 0) - (a.score || 0) : 0);
         const limit = Math.min(3000, Number(url.searchParams.get('limit')) || 500);
-        const list = inCat.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name)).slice(0, limit).map(publicEntry);
+        const list = inCat.sort((a, b) => cmp(a, b) || a.name.localeCompare(b.name)).slice(0, limit).map(publicEntry);
         return json(res, 200, { total: inCat.length, plugins: list });
       }
+      if (req.method === 'GET' && url.pathname === '/chains') {
+        const st = ctx.getSettings();
+        return json(res, 200, { chains: (st.chains || []).map((c) => ({ id: `chain:${c.id}`, name: c.name, count: c.ids.length })) });
+      }
       if (req.method === 'GET' && url.pathname === '/image') {
-        const id = url.searchParams.get('id');
+        let id = url.searchParams.get('id');
+        // A chain shows the picture of its first plugin.
+        if (id && id.startsWith('chain:')) id = ((ctx.getSettings().chains || []).find((c) => `chain:${c.id}` === id)?.ids || [])[0] || id;
         const size = Math.min(288, Math.max(36, Number(url.searchParams.get('size')) || 144));
         const e = entries(ctx).find((x) => x.ids.includes(id));
         if (!e) return json(res, 404, { error: 'unknown plugin' });
@@ -191,6 +210,10 @@ async function route(ctx, req, res, url) {
       }
       if (req.method === 'POST' && url.pathname === '/load') {
         const body = await readBody(req);
+        if (String(body.id).startsWith('chain:')) {
+          const r = await ctx.loadById(body.id, { newTrack: Boolean(body.newTrack) });
+          return json(res, r.ok ? 200 : 409, r);
+        }
         const e = entries(ctx).find((x) => x.ids.includes(body.id));
         if (!e) return json(res, 404, { ok: false, error: 'Plugin nicht gefunden.' });
         const r = await ctx.loadById(e.ids[0], { newTrack: Boolean(body.newTrack) });
