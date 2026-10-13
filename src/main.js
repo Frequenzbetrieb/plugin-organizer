@@ -9,6 +9,7 @@ const health = require('./health');
 const liveindex = require('./liveindex');
 const livedb = require('./livedb');
 const api = require('./api');
+const updater = require('./updater');
 
 // Keep the data folder from before the rename, so pictures, mappings and collections stay.
 // PO_USERDATA (development): separate data folder, so a dev build can run next to the installed app.
@@ -39,6 +40,7 @@ const DEFAULT_SETTINGS = {
   alwaysOnTop: false,
   toggleKey: 'PageUp', // global key that hides/shows the app
   hideAfterLoad: false,
+  autoUpdate: true, // look for a new release on GitHub at start and every 6 hours
   windowMode: 'full', // full | sidecar | mini
   fullBounds: null, // size/position of the full window, restored when switching back
   showDawShortcuts: true,
@@ -349,6 +351,30 @@ app.whenReady().then(() => {
   ipcMain.handle('open-link', (_e, key) => LINKS[key] && shell.openExternal(LINKS[key]));
   ipcMain.handle('get-state', () => ({ version: app.getVersion(), links: LINKS, library, settings, shots, snapshotsAvailable: snapshots.available(), liveIndexAvailable: liveindex.available(), platform: process.platform, supportedFormats: ableton.SUPPORTED_FORMATS }));
   ipcMain.handle('rescan', rescan);
+  // Updates: check on demand or automatically; install downloads, swaps the app and restarts.
+  let update = null;
+  const checkUpdate = async (manual) => {
+    try {
+      update = await updater.check();
+      if (update || manual) send('update', update || { none: true });
+    } catch (e) { if (manual) send('update', { error: e.message }); }
+    return update;
+  };
+  ipcMain.handle('update-check', () => checkUpdate(true));
+  ipcMain.handle('update-install', async () => {
+    if (!update) return { ok: false, error: 'Kein Update gefunden.' };
+    if (loading || indexer?.running) return { ok: false, error: 'Bitte warten, bis Laden/Indexierung fertig ist.' };
+    try {
+      await updater.install(update, (f) => send('update-progress', f));
+      return { ok: true };
+    } catch (e) { logError('update', e.stack || e.message); return { ok: false, error: e.message }; }
+  });
+  // Dev helper: PO_TEST_UPDATE=1 checks and installs right away.
+  if (process.env.PO_TEST_UPDATE) setTimeout(async () => { if (await checkUpdate(true)) logError('test-update', JSON.stringify(await (async () => { try { await updater.install(update, () => {}); return 'ok'; } catch (e) { return e.message; } })())); else logError('test-update', 'kein Update'); }, 4000);
+  if (app.isPackaged) {
+    setTimeout(() => settings.autoUpdate && checkUpdate(false), 8000);
+    setInterval(() => settings.autoUpdate && checkUpdate(false), 6 * 3600 * 1000);
+  }
   ipcMain.handle('save-settings', (_e, next) => {
     settings = { ...settings, ...next };
     writeJson(settingsFile(), settings);

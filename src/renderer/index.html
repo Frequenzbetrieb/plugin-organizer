@@ -103,6 +103,7 @@
   </footer>
 
   <div id="idxbar" class="idxbar hidden"><span id="idxText"></span><span class="spacer"></span><span class="muted">Laden wartet, bis es fertig ist</span><button class="btn small" id="idxStop">Stopp</button></div>
+  <div id="updbar" class="idxbar updbar hidden"><span id="updText"></span><span class="spacer"></span><button class="btn small" id="updLater">Später</button><button class="btn small primary" id="updInstall">Jetzt aktualisieren</button></div>
   <div id="settingsModal" class="modal hidden">
     <div class="modal-box">
       <div class="modal-head"><b>Einstellungen</b><button class="btn small" id="settingsClose">Fertig</button></div>
@@ -110,6 +111,8 @@
       <div class="srow"><span><b>Ein-/Ausblenden-Taste</b><small>Global: blendet die App aus und holt sie wieder nach vorne. Klick ins Feld, dann Taste(n) drücken.</small></span>
         <span class="keyrec"><button class="btn" id="setToggleKey">Bild↑</button><button class="btn small" id="clearToggleKey" title="Keine Taste">✕</button></span></div>
       <label class="srow"><span><b>Nach dem Laden ausblenden</b><small>Sobald ein Plugin in Live geladen ist, verschwindet die App und du bist direkt in Live.</small></span><input type="checkbox" id="setHideAfter"></label>
+      <label class="srow"><span><b>Automatisch nach Updates suchen</b><small>Beim Start und alle 6 Stunden auf GitHub nachsehen. Installiert wird nur, wenn du es bestätigst – deine Bibliothek, Bilder und Tasten bleiben erhalten.</small></span><input type="checkbox" id="setAutoUpdate"></label>
+      <div class="srow"><span><b>Version <span id="setVersion"></span></b><small id="updateStatus">Nach einer neuen Version suchen.</small></span><button class="btn" id="updateCheck">Jetzt prüfen</button></div>
       <div class="srow"><span><b>Stream Deck</b><small>Plugins mit Bild auf den Tasten, ein Druck lädt sie in Live. Stream-Deck-Plugin herunterladen und per Doppelklick installieren, dann in der Elgato-Software die Aktion „Plugin laden“ (Kategorie Frequenzbetrieb) auf eine Taste ziehen.</small></span>
         <button class="btn" data-link="streamdeck">Herunterladen</button></div>
       <div class="about">

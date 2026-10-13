@@ -901,6 +901,8 @@ function renderSettings() {
   const st = state.settings;
   $('#setOnTop').checked = Boolean(st.alwaysOnTop);
   $('#setHideAfter').checked = Boolean(st.hideAfterLoad);
+  $('#setAutoUpdate').checked = st.autoUpdate !== false;
+  $('#setVersion').textContent = state.version || '';
   $('#setToggleKey').textContent = accelLabel(st.toggleKey);
   $('#hideKey').textContent = accelLabel(st.toggleKey);
   $('#hideKey').classList.toggle('hidden', !st.toggleKey);
@@ -919,6 +921,25 @@ $('#setOnTop').onchange = async (e) => { await save({ alwaysOnTop: e.target.chec
 $('#setHideAfter').onchange = async (e) => { await save({ hideAfterLoad: e.target.checked }); renderSettings(); };
 $('#clearToggleKey').onclick = async () => { await save({ toggleKey: '' }); renderSettings(); };
 $('#hideBtn').onclick = () => window.api.toggleWindow();
+
+// ---------- Updates ----------
+$('#setAutoUpdate').onchange = async (e) => { await save({ autoUpdate: e.target.checked }); renderSettings(); };
+$('#updateCheck').onclick = () => { $('#updateStatus').textContent = 'Suche …'; window.api.updateCheck(); };
+window.api.on('update', (u) => {
+  if (u.error) { $('#updateStatus').textContent = `Prüfen fehlgeschlagen: ${u.error}`; return; }
+  if (u.none) { $('#updateStatus').textContent = 'Du hast die neueste Version.'; return; }
+  $('#updateStatus').textContent = `Version ${u.version} ist verfügbar.`;
+  $('#updText').textContent = `Neue Version ${u.version} verfügbar – die App lädt sie herunter, tauscht sich aus und startet neu.`;
+  $('#updbar').classList.remove('hidden');
+});
+window.api.on('update-progress', (f) => { $('#updText').textContent = `Update wird geladen … ${Math.round(f * 100)} %`; });
+$('#updLater').onclick = () => $('#updbar').classList.add('hidden');
+$('#updInstall').onclick = async () => {
+  $('#updInstall').disabled = true;
+  const r = await window.api.updateInstall();
+  if (!r.ok) { $('#updText').textContent = `Update fehlgeschlagen: ${r.error}`; $('#updInstall').disabled = false; }
+  else $('#updText').textContent = 'Update installiert – die App startet neu …';
+};
 // Record a key combination for the toggle key.
 $('#setToggleKey').onclick = () => {
   const b = $('#setToggleKey');
@@ -971,7 +992,8 @@ async function pollDaw() {
 (async () => {
   const s = await window.api.getState();
   if (!s.liveIndexAvailable) $('#liveIdxBtn').classList.add('hidden');
-  $('#appVersion').textContent = `v${s.version}`;
+  $("#appVersion").textContent = `v${s.version}`;
+  state.version = s.version;
   Object.assign(state, { shots: s.shots, snapshotsAvailable: s.snapshotsAvailable, liveIndexAvailable: s.liveIndexAvailable, library: s.library, settings: s.settings, supportedFormats: s.supportedFormats, platform: s.platform });
   state.windowMode = s.settings.windowMode || 'full';
   applyModeClass();
