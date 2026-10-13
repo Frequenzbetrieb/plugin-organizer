@@ -36,6 +36,7 @@ jobs:
           path: |
             dist/Frequenzbetrieb-Plugin-Organizer-macOS-universal.dmg
             dist/Frequenzbetrieb-Plugin-Organizer-macOS-universal.zip
+            dist/Frequenzbetrieb-Plugin-Organizer.streamDeckPlugin
 
   windows:
     name: Windows (x64)

@@ -6,3 +6,6 @@ native/vst3sdk/
 .DS_Store
 !build/
 native/vst3snap/build/
+streamdeck/*.sdPlugin/bin/
+streamdeck/*.sdPlugin/imgs/*.png
+streamdeck/test/last-key.png

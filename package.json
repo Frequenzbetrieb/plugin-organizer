@@ -1,21 +1,25 @@
 {
   "name": "frequenzbetrieb-plugin-organizer",
   "productName": "Frequenzbetrieb Plugin Organizer",
-  "version": "0.2.9",
+  "version": "0.3.0",
   "description": "Kostenloser Plugin-Organizer für Ableton Live: Plugins finden, sortieren, mit echten Vorschaubildern ansehen und per Klick oder Taste laden. Ein Open-Source-Projekt von Frequenzbetrieb n.e.V.",
   "main": "src/main.js",
   "scripts": {
     "start": "npm run build:native && electron .",
     "build:native": "node native/build.js",
-    "dist:mac": "UNIVERSAL=1 node native/build.js && electron-builder --mac --universal --publish never",
-    "dist:win": "node native/build.js && electron-builder --win --x64 --publish never"
+    "dist:mac": "UNIVERSAL=1 node native/build.js && electron-builder --mac --universal --publish never && node streamdeck/build.js",
+    "dist:win": "node native/build.js && electron-builder --win --x64 --publish never",
+    "build:streamdeck": "node streamdeck/build.js"
   },
   "devDependencies": {
     "electron": "^33.2.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "esbuild": "^0.24.0",
+    "ws": "^8.18.0"
   },
   "allowScripts": {
-    "electron@33.4.11": true
+    "electron@33.4.11": true,
+    "esbuild@0.24.0": true
   },
   "author": "Frequenzbetrieb n.e.V. (https://www.frequenzbetrieb.de)",
   "license": "AGPL-3.0-only",

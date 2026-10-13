@@ -24,6 +24,7 @@ Der Plugin Organizer zeigt alle installierten Plugins, die Stock-Devices von Abl
 - **Laden in Ableton Live:** Klick auf eine Karte, ⇧-Klick für eine neue Spur. Der Organizer sucht in Lives Browser exakt das richtige Gerät (Lives eigene Plugin-Namen werden aus Lives Datenbank gelesen).
 - **Tasten-Mapping:** Plugins auf Tasten legen (Layouts mit F-Tasten, Navigationsblock und Ziffernblock, Lives eigene Tasten markiert). Global mit ⌃⌥⌘ + Taste oder – nur solange Live vorne ist – mit der Taste allein. Pro Taste wählbar: auf ausgewählte oder neue Spur laden.
 - **Health:** Speicherbedarf der Plugins, Intel-only-Plugins (Rosetta), nie genutzte Plugins, VST2-Duplikate, AAX ohne Pro Tools, Plugins aus deinen Live-Sets, die auf diesem Rechner fehlen.
+- **Stream Deck:** eigenes Stream-Deck-Plugin – Plugin-Bild auf der Taste, ein Druck lädt das Plugin in Live (auf Wunsch auf neuer Spur). Download: [`Frequenzbetrieb-Plugin-Organizer.streamDeckPlugin`](https://github.com/Frequenzbetrieb/plugin-organizer/releases/latest/download/Frequenzbetrieb-Plugin-Organizer.streamDeckPlugin), Doppelklick installiert es; in der Elgato-Software die Aktion „Plugin laden“ (Kategorie Frequenzbetrieb) auf eine Taste ziehen und das Plugin suchen. Der Organizer muss laufen.
 - **Drei Ansichten:** Vollbild, **Sidecar** (schmale Leiste am Bildschirmrand neben Live, Kategorien als Bildstreifen) und **Mini** (kleines Suchfenster: tippen, ↑/↓, Enter lädt).
 - **Fenster:** immer im Vordergrund, global per Taste ein-/ausblenden (Standard: Bild↑), nach dem Laden automatisch ausblenden.
 
@@ -79,6 +80,8 @@ Lädt jedes Plugin/Device ohne Bild nacheinander in Live, fotografiert es und ma
 | `src/renderer/` | Oberfläche (HTML/CSS/JS, ohne Framework) |
 | `native/snapshot.swift` | AU-Editor fotografieren |
 | `native/vst3snap/` | Minimaler VST3-Host zum Fotografieren (`main.mm` macOS, `main_win.cpp` Windows) |
+| `src/api.js` | Lokale Schnittstelle (nur 127.0.0.1, Schlüssel in `api.json`) für das Stream-Deck-Plugin |
+| `streamdeck/` | Stream-Deck-Plugin (`src/plugin.js`, Property Inspector, `build.js`, Test mit nachgebautem Stream Deck) |
 | `native/livecapture.swift` | Live-Fenster aufnehmen, Geräte erkennen (Vision), Live-Menüs |
 
 Die Daten (Scan-Cache, Bilder, Einstellungen) liegen unter `~/Library/Application Support/Plugin Organizer/`.

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Plugin laden</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 8px 10px; background: #2d2d2d; color: #d8d8d8; font: 12px -apple-system, "Segoe UI", sans-serif; }
+    label { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+    .row { margin: 6px 0; }
+    .lbl { color: #9a9a9a; font-size: 11px; margin-bottom: 3px; }
+    input[type=search] { width: 100%; box-sizing: border-box; background: #3d3d3d; color: #eee; border: 1px solid #555; border-radius: 3px; padding: 5px 6px; font: inherit; }
+    #results { max-height: 220px; overflow-y: auto; border: 1px solid #444; border-radius: 3px; margin-top: 4px; }
+    .item { padding: 5px 7px; cursor: pointer; border-bottom: 1px solid #383838; }
+    .item:hover { background: #3f3f3f; }
+    .item.sel { background: #ff5a2c; color: #111; }
+    .item small { display: block; color: #9a9a9a; }
+    .item.sel small { color: #331; }
+    #chosen b { color: #fff; }
+    #status { font-size: 11px; color: #9a9a9a; margin-top: 8px; }
+    #status.err { color: #ff8a65; }
+  </style>
+</head>
+<body>
+  <div class="row">
+    <div class="lbl">Plugin</div>
+    <div id="chosen">Noch keins gewählt</div>
+  </div>
+  <div class="row">
+    <input id="q" type="search" placeholder="Suchen – Name, Hersteller, Kategorie …" autocomplete="off" />
+    <div id="results"></div>
+  </div>
+  <label><input type="checkbox" id="newTrack" /> Auf neuer Spur laden</label>
+  <label><input type="checkbox" id="showName" checked /> Name auf der Taste anzeigen</label>
+  <div id="status"></div>
+
+  <script>
+    // Stream Deck property inspector protocol: the software calls connectElgatoStreamDeckSocket().
+    let socket;
+    let uuid;
+    let action;
+    let settings = {};
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    function toPlugin(payload) { socket.send(JSON.stringify({ event: 'sendToPlugin', action, context: uuid, payload })); }
+    function save() { socket.send(JSON.stringify({ event: 'setSettings', context: uuid, payload: settings })); }
+
+    function showChosen() {
+      $('#chosen').innerHTML = settings.pluginId
+        ? `<b>${esc(settings.pluginName || '')}</b> <small>${esc(settings.pluginVendor || '')}</small>`
+        : 'Noch keins gewählt – unten suchen und anklicken';
+      $('#newTrack').checked = Boolean(settings.newTrack);
+      $('#showName').checked = settings.showName !== false;
+    }
+
+    function showResults(list) {
+      $('#results').innerHTML = list.map((p) => `<div class="item${p.id === settings.pluginId ? ' sel' : ''}" data-id="${esc(p.id)}">${esc(p.name)}<small>${esc(p.vendor)} · ${esc(p.sub && p.sub !== p.category ? p.sub : p.category)}</small></div>`).join('')
+        || '<div class="item"><small>Nichts gefunden.</small></div>';
+      $('#results').querySelectorAll('[data-id]').forEach((el) => {
+        el.onclick = () => {
+          const p = list.find((x) => x.id === el.dataset.id);
+          settings = { ...settings, pluginId: p.id, pluginName: p.name, pluginVendor: p.vendor };
+          save();
+          showChosen();
+          showResults(list);
+        };
+      });
+    }
+
+    let timer;
+    $('#q').oninput = () => { clearTimeout(timer); timer = setTimeout(() => toPlugin({ event: 'search', q: $('#q').value }), 200); };
+    $('#newTrack').onchange = (e) => { settings.newTrack = e.target.checked; save(); };
+    $('#showName').onchange = (e) => { settings.showName = e.target.checked; save(); };
+
+    function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
+      uuid = inUUID;
+      const info = JSON.parse(inActionInfo || '{}');
+      action = info.action;
+      settings = info.payload?.settings || {};
+      socket = new WebSocket(`ws://127.0.0.1:${inPort}`);
+      socket.onopen = () => {
+        socket.send(JSON.stringify({ event: inRegisterEvent, uuid: inUUID }));
+        showChosen();
+        toPlugin({ event: 'status' });
+        toPlugin({ event: 'search', q: settings.pluginName || '' });
+      };
+      socket.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.event !== 'sendToPropertyInspector') return;
+        const p = msg.payload;
+        if (p.event === 'results') showResults(p.plugins);
+        if (p.event === 'status' || p.offline) {
+          const st = $('#status');
+          st.className = p.offline ? 'err' : '';
+          st.textContent = p.offline
+            ? 'Plugin Organizer nicht erreichbar – bitte die App starten (ab Version 0.3.0).'
+            : `Plugin Organizer ${p.version || ''} verbunden · Ableton Live ${p.live ? 'läuft' : 'nicht gestartet'}`;
+        }
+      };
+    }
+  </script>
+</body>
+</html>

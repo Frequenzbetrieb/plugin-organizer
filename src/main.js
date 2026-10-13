@@ -8,6 +8,7 @@ const snapshots = require('./snapshots');
 const health = require('./health');
 const liveindex = require('./liveindex');
 const livedb = require('./livedb');
+const api = require('./api');
 
 // Keep the data folder from before the rename, so pictures, mappings and collections stay.
 // PO_USERDATA (development): separate data folder, so a dev build can run next to the installed app.
@@ -19,6 +20,7 @@ const LINKS = {
   donate: 'https://www.frequenzbetrieb.de/spenden/',
   github: 'https://github.com/Frequenzbetrieb/plugin-organizer',
   issues: 'https://github.com/Frequenzbetrieb/plugin-organizer/issues',
+  streamdeck: 'https://github.com/Frequenzbetrieb/plugin-organizer/releases/latest/download/Frequenzbetrieb-Plugin-Organizer.streamDeckPlugin',
 };
 const libraryFile = () => path.join(dataDir(), 'library.json');
 const settingsFile = () => path.join(dataDir(), 'settings.json');
@@ -435,6 +437,20 @@ app.whenReady().then(() => {
 
   createWindow();
   applyWindowSettings();
+  // Local interface for the Stream Deck plugin.
+  api.start({
+    version: app.getVersion(),
+    dataDir,
+    getLibrary: () => library,
+    getSettings: () => settings,
+    getShots: () => shots,
+    saveSettings: (patch) => { settings = { ...settings, ...patch }; writeJson(settingsFile(), settings); },
+    loadById,
+    isLiveRunning: () => ableton.isRunning(),
+    isIndexing: () => Boolean(indexer?.running),
+    iconPng: (icns) => scanner.iconPng(icns, path.join(dataDir(), 'icons')),
+    log: logError,
+  });
   const area = require('electron').screen.getPrimaryDisplay().workArea;
   if (!settings.widthBumped) {
     settings.widthBumped = true;
