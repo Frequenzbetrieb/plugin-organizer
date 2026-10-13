@@ -13,7 +13,7 @@ import Live
 from _Framework.ControlSurface import ControlSurface
 
 PORT = 47330
-VERSION = 2
+VERSION = 3
 FORMAT_FOLDERS = {"AU": ("audio units", "au"), "VST": ("vst", "vst2"), "VST3": ("vst3",)}
 
 
@@ -72,6 +72,11 @@ class Organizer(ControlSurface):
             return {"ok": True, "version": VERSION}
         if cmd == "reindex":
             self._plugins = None
+            return {"ok": True}
+        if cmd == "remember":
+            # Notes the selected track's devices, so "unload" can remove whatever gets loaded next (also via search).
+            track = self.song().view.selected_track
+            self._remembered = (track, set(d._live_ptr for d in track.devices))
             return {"ok": True}
         if cmd == "unload":
             # Removes what the last remembered load added (used by the Live-Index after the photo).
@@ -154,7 +159,8 @@ class Organizer(ControlSurface):
 
     # A preset/rack/Max file: follow its folder path inside the browser (Packs, User Library, Core Library).
     def _find_file(self, path):
-        parts = [p for p in re.split(r"[\\/]", path) if p]
+        # "Ableton Folder Info" is hidden in the browser: the device shows up as its parent folder.
+        parts = [p for p in re.split(r"[\\/]", path) if p and p != "Ableton Folder Info"]
         if not parts:
             return None
         browser = self.application().browser
@@ -167,12 +173,34 @@ class Organizer(ControlSurface):
                 found = self._follow(root, parts[i + 2:])
                 if found is not None:
                     return found
-        for root in (browser.packs, browser.user_library, browser.max_for_live, browser.drums, browser.sounds,
-                     browser.instruments, browser.audio_effects, browser.midi_effects):
+        roots = [browser.packs, browser.user_library] + list(browser.user_folders) + [
+            browser.max_for_live, browser.drums, browser.sounds, browser.instruments, browser.audio_effects, browser.midi_effects]
+        for root in roots:
             for start in range(len(parts) - 1):
                 child = self._child(root, parts[start])
                 if child is not None:
                     found = self._follow(child, parts[start + 1:])
+                    if found is not None:
+                        return found
+        # Packs can be named differently in the browser than on disk: look the file name up by name
+        # in the Max for Live category / user folders (a few levels deep).
+        name = parts[-1]
+        # (Packs last and shallow: walking them blocks Live's main thread.)
+        for root, depth in [(browser.max_for_live, 5)] + [(f, 5) for f in browser.user_folders] + [(browser.packs, 3)]:
+            found = self._search(root, name, depth)
+            if found is not None:
+                return found
+        return None
+
+    def _search(self, item, name, depth):
+        key = norm(name)
+        for c in item.children:
+            if norm(c.name) == key and c.is_loadable:
+                return c
+        if depth > 0:
+            for c in item.children:
+                if c.is_folder or not c.is_loadable:
+                    found = self._search(c, name, depth - 1)
                     if found is not None:
                         return found
         return None
@@ -186,7 +214,11 @@ class Organizer(ControlSurface):
 
     def _follow(self, item, rest):
         for name in rest:
-            item = self._child(item, name)
-            if item is None:
+            child = self._child(item, name)
+            if child is None:
+                # Device folders: ".../Bass/Bass.amxd" is shown as the loadable item "Bass" itself.
+                if item.is_loadable and norm(name) == norm(item.name):
+                    return item
                 return None
+            item = child
         return item if item.is_loadable else None

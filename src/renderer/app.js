@@ -93,6 +93,8 @@ const isFav = (it) => it.ids.some((id) => state.settings.favorites.includes(id))
 const NEW_DAYS = 14;
 const isNew = (it) => it.ids.some((id) => (state.settings.firstSeen?.[id] || 0) > Date.now() - NEW_DAYS * 86400000);
 const customImg = (it) => it.ids.map((id) => state.settings.images[id]).find(Boolean);
+// No picture yet (MIDI Tools live in the clip view and can't have one).
+const noPic = (it) => !it.midiTool && !customImg(it) && !shotFor(it);
 
 function matches(it) {
   if (!state.query) return true;
@@ -314,9 +316,12 @@ function render() {
   if (!state.formats) state.formats = new Set(state.supportedFormats);
   const all = items().filter(matches).filter((it) =>
     (state.source === 'All' ? it.source !== 'Preset' : it.source === state.source)
-    && (!$('#onlyFavorites').checked || isFav(it)) && (!$('#onlyMapped').checked || keyFor(it)) && (!$('#onlyNew').checked || isNew(it)));
+    && (!$('#onlyFavorites').checked || isFav(it)) && (!$('#onlyMapped').checked || keyFor(it)) && (!$('#onlyNew').checked || isNew(it)) && (!$('#onlyNoPic').checked || noPic(it)));
   const nNew = items().filter(isNew).length;
   $('#newCount').textContent = nNew ? nNew : '';
+  // Missing pictures among what the current source shows (racks/presets only on their own tab).
+  const nNoPic = items().filter((it) => (state.source === 'All' ? it.source !== 'Preset' : it.source === state.source) && noPic(it)).length;
+  $('#noPicCount').textContent = nNoPic ? nNoPic : '✓';
   renderFilterBar(all);
 
   renderCollections(all);
@@ -741,7 +746,7 @@ $('#search').onkeydown = (e) => {
 $('#vendorSearch').oninput = (e) => { state.vendorQuery = e.target.value; render(); };
 $('#sort').onchange = (e) => { state.sort = e.target.value; render(); };
 $('#showHidden').onchange = (e) => { state.showHidden = e.target.checked; state.selected.clear(); render(); };
-for (const id of ['groupFormats', 'onlyFavorites', 'onlyMapped', 'onlyNew']) $(`#${id}`).onchange = render;
+for (const id of ['groupFormats', 'onlyFavorites', 'onlyMapped', 'onlyNew', 'onlyNoPic']) $(`#${id}`).onchange = render;
 $('#globalHotkeys').onchange = (e) => save({ globalHotkeys: e.target.checked });
 $('#showDaw').onchange = async (e) => { await save({ showDawShortcuts: e.target.checked }); renderKeyboard(); };
 $('#kbLayout').onchange = async (e) => { await save({ keyboardLayout: e.target.value }); renderKeyboard(); };

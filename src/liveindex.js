@@ -222,9 +222,14 @@ class LiveIndexer {
       return false;
     }
     // Read the undo state only now: Live refreshes the entry ~1 s after the previous item's undo.
-    const since = Date.now() - (this.lastUndoAt || 0);
-    if (since < 1200) await sleep(1200 - since);
-    const undoBefore = (await helper(['undolabel']))?.label ?? '';
+    // With the script, it notes the track's devices now and deletes the new one afterwards (no undo needed).
+    this.scriptRemove = this.useScript && Boolean((await livescript.request({ cmd: 'remember' }, 2000))?.ok);
+    let undoBefore = '';
+    if (!this.scriptRemove) {
+      const since = Date.now() - (this.lastUndoAt || 0);
+      if (since < 1200) await sleep(1200 - since);
+      undoBefore = (await helper(['undolabel']))?.label ?? '';
+    }
     await this.pickVerified(main, index, tmpB);
     this.lastLoaded = false;
     let ok = false;
@@ -336,6 +341,13 @@ class LiveIndexer {
 
   // Removes the device we just loaded again (undo via Live's Edit menu).
   async remove(before, quick) {
+    if (this.scriptRemove) {
+      const u = await livescript.request({ cmd: 'unload' }, 5000);
+      this.lastUndo = u?.ok ? 'removed' : `skipped: ${u?.error || 'Live-Skript antwortet nicht'}`;
+      this.lastUndoAt = Date.now();
+      await sleep(300);
+      return;
+    }
     if (this.hadPluginWindow) { await ableton.closePluginWindows(); await sleep(150); }
     const r = await helper(['undo', before || '', quick ? 'quick' : 'full']);
     this.lastUndo = r?.result || 'skipped: helper failed';

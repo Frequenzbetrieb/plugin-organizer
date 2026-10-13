@@ -8,7 +8,7 @@
     'Sidecar': 'Sidecar', 'Mini': 'Mini', 'Ausblenden': 'Hide', 'Effekte': 'Effects', 'Instrumente': 'Instruments', 'Alle': 'All',
     'Quelle': 'Source', 'Plugins': 'Plugins', 'Presets': 'Presets', 'Format': 'Format', '▦ Kategorien': '▦ Categories',
     '▦ Hersteller': '▦ Vendors', '▤ Raster': '▤ Grid', 'Raster': 'Grid', 'Formate zusammenfassen': 'Merge formats',
-    '★ Nur Favoriten': '★ Favourites only', '⌨ Nur belegte': '⌨ Mapped only', '✦ Nur neue': '✦ New only',
+    '★ Nur Favoriten': '★ Favourites only', '⌨ Nur belegte': '⌨ Mapped only', '✦ Nur neue': '✦ New only', '▢ Ohne Bild': '▢ No picture',
     '🗑 Ausgeblendete zeigen': '🗑 Show hidden', 'Eigene': 'Own', '+ Neu': '+ New', 'Weniger zeigen': 'Show less',
     'Kostenlos & Open Source von': 'Free & open source by', '♥ Spenden': '♥ Donate', 'Spenden': 'Donate',
     'Suchen – Name, Hersteller, Kategorie …  ( / )': 'Search – name, vendor, category …  ( / )', 'Sortierung': 'Sort order',
