@@ -26,10 +26,12 @@
   </select>
   <p>Ein Druck öffnet das Profil <b>„Frequenzbetrieb Browser“</b>: 12 Tasten mit Bild, rechts <b>◀ ▶</b> zum Blättern und <b>↩</b> eine Ebene zurück (in der Übersicht: zurück zu deinem Profil).</p>
   <p>Auf einem Plugin: <b>kurz drücken</b> lädt es auf die ausgewählte Spur, <b>lang drücken</b> (½ s) auf eine neue Spur.</p>
+  <script src="i18n.js"></script>
   <script>
     let socket; let uuid; let settings = {};
     function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
       uuid = inUUID;
+      try { PI_I18N.setLang(JSON.parse(inInfo || '{}').application?.language); } catch { /* keep German */ }
       settings = JSON.parse(inActionInfo || '{}').payload?.settings || {};
       document.querySelector('#start').value = settings.start || 'home';
       socket = new WebSocket(`ws://127.0.0.1:${inPort}`);

@@ -1,0 +1,21 @@
+{
+  "Description": "Loads your plugins into Ableton Live at the press of a key – with the plugin's real picture on the key. Requires the free Frequenzbetrieb Plugin Organizer.",
+  "Name": "Frequenzbetrieb Plugin Organizer",
+  "Localization": {},
+  "de.frequenzbetrieb.pluginorganizer.load": {
+    "Name": "Load plugin",
+    "Tooltip": "Loads a plugin from Plugin Organizer into Ableton Live – onto the selected or a new track."
+  },
+  "de.frequenzbetrieb.pluginorganizer.browse": {
+    "Name": "Open browser",
+    "Tooltip": "Opens the plugin browser on the Stream Deck: page through areas, categories and plugins with pictures."
+  },
+  "de.frequenzbetrieb.pluginorganizer.slot": {
+    "Name": "Browser key",
+    "Tooltip": "Content key of the plugin browser (used by the browser profile)."
+  },
+  "de.frequenzbetrieb.pluginorganizer.nav": {
+    "Name": "Browser navigation",
+    "Tooltip": "Paging and back in the plugin browser (used by the browser profile)."
+  }
+}

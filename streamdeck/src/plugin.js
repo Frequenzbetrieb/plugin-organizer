@@ -20,6 +20,11 @@ const LONG_PRESS_MS = 500;
 const args = {};
 for (let i = 2; i < process.argv.length; i += 2) args[process.argv[i].replace(/^-/, '')] = process.argv[i + 1];
 
+// Key titles in the Stream Deck software's language (German only for "de").
+let EN = true;
+try { EN = !/^de/i.test(JSON.parse(args.info || '{}').application?.language || ''); } catch { /* English */ }
+const T = (de, en) => (EN ? en : de);
+
 // ---------- Plugin Organizer interface ----------
 function apiFile() {
   if (process.env.PO_API_FILE) return process.env.PO_API_FILE; // tests
@@ -78,13 +83,13 @@ async function refresh(context) {
   const s = key.settings || {};
   if (!s.pluginId) {
     send({ event: 'setImage', context, payload: { image: '', target: 0 } });
-    send({ event: 'setTitle', context, payload: { title: 'Plugin\nwählen', target: 0 } });
+    send({ event: 'setTitle', context, payload: { title: T('Plugin\nwählen', 'Choose\nplugin'), target: 0 } });
     return;
   }
   const showName = s.showName !== false;
   const r = await api('GET', `/image?id=${encodeURIComponent(s.pluginId)}&size=144&title=${showName ? 1 : 0}`);
   if (r.offline) {
-    send({ event: 'setTitle', context, payload: { title: 'Organizer\nstarten', target: 0 } });
+    send({ event: 'setTitle', context, payload: { title: T('Organizer\nstarten', 'Start\nOrganizer'), target: 0 } });
     return;
   }
   send({ event: 'setImage', context, payload: { image: r.image || '', target: 0 } });
@@ -151,13 +156,13 @@ async function loadLevel(device) {
     const r = await api('GET', '/collections');
     b.offline = Boolean(r.offline);
     b.items = [
-      { kind: 'group', label: 'Effekte', params: { type: 'Effect' } },
-      { kind: 'group', label: 'Instrumente', params: { type: 'Instrument' } },
+      { kind: 'group', label: T('Effekte', 'Effects'), params: { type: 'Effect' } },
+      { kind: 'group', label: T('Instrumente', 'Instruments'), params: { type: 'Instrument' } },
       { kind: 'group', label: 'MIDI FX', params: { type: 'MIDI FX' } },
       { kind: 'group', label: 'Stock', params: { source: 'Stock' } },
       { kind: 'group', label: 'Max', params: { source: 'Max' } },
       { kind: 'group', label: 'Presets', params: { source: 'Preset' } },
-      ...(r.favorites ? [{ kind: 'list', label: '★ Favoriten', params: { favorites: '1' } }] : []),
+      ...(r.favorites ? [{ kind: 'list', label: T('★ Favoriten', '★ Favourites'), params: { favorites: '1' } }] : []),
       ...(r.collections || []).filter((c) => c.count).map((c) => ({ kind: 'list', label: c.name, params: { collection: c.id } })),
     ];
   } else if (b.level === 'categories') {
@@ -168,7 +173,7 @@ async function loadLevel(device) {
     const r = await api('GET', `/facets?${qs({ ...b.catParams, by: 'sub' })}`);
     b.offline = Boolean(r.offline);
     b.items = [
-      { kind: 'list', label: `Alle ${b.catParams.category}`, count: r.total, params: b.catParams },
+      { kind: 'list', label: T(`Alle ${b.catParams.category}`, `All ${b.catParams.category}`), count: r.total, params: b.catParams },
       ...(r.categories || []).map((c) => ({ kind: 'list', label: c.name, count: c.count, params: { ...b.catParams, sub: c.name } })),
     ];
   } else {
@@ -189,7 +194,7 @@ async function drawSlot(context) {
     send({ event: 'setImage', context, payload: { image: image || '', target: 0 } });
     send({ event: 'setTitle', context, payload: { title: title || '', target: 0 } });
   };
-  if (b.offline && slot.index === 0) return set('', 'Organizer\nstarten');
+  if (b.offline && slot.index === 0) return set('', T('Organizer\nstarten', 'Start\nOrganizer'));
   if (!item) return set('', '');
   if (item.kind === 'plugin') {
     const image = await cachedImage(`p:${item.id}`, `/image?id=${encodeURIComponent(item.id)}&size=144`);
@@ -205,7 +210,7 @@ function drawNav(context) {
   const b = browser(n.device);
   const title = n.nav === 'prev' ? (b.page > 0 ? '◀' : '')
     : n.nav === 'next' ? (b.page < pages(b) - 1 ? '▶' : '')
-      : (b.level === 'home' ? '↩\nzurück' : '↩');
+      : (b.level === 'home' ? T('↩\nzurück', '↩\nback') : '↩');
   const sub = n.nav !== 'back' && pages(b) > 1 ? `\n${b.page + 1}/${pages(b)}` : '';
   send({ event: 'setTitle', context, payload: { title: title ? `${title}${sub}` : '', target: 0 } });
 }

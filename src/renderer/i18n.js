@@ -111,7 +111,7 @@
     'Beim Start und alle 6 Stunden auf GitHub nachsehen. Installiert wird nur, wenn du es bestätigst – deine Bibliothek, Bilder und Tasten bleiben erhalten.': 'Looks on GitHub at startup and every 6 hours. Installs only when you confirm – your library, pictures and keys are kept.',
     'Version': 'Version', 'Jetzt prüfen': 'Check now', 'Stream Deck': 'Stream Deck', 'Herunterladen': 'Download',
     'Plugins mit Bild auf den Tasten, ein Druck lädt sie in Live. Stream-Deck-Plugin herunterladen und per Doppelklick installieren, dann in der Elgato-Software die Aktion „Plugin laden“ (Kategorie Frequenzbetrieb) auf eine Taste ziehen.':
-      'Plugins with pictures on the keys, one press loads them in Live. Download the Stream Deck plugin and double-click to install, then drag the “Plugin laden” action (category Frequenzbetrieb) onto a key in the Elgato software.',
+      'Plugins with pictures on the keys, one press loads them in Live. Download the Stream Deck plugin and double-click to install, then drag the “Load plugin” action (category Frequenzbetrieb) onto a key in the Elgato software.',
     'Ein kostenloses Open-Source-Projekt von': 'A free open-source project by', '– frei nutzbar unter der AGPL-3.0.': '– free to use under the AGPL-3.0.',
     'Wenn dir das Programm hilft, freuen wir uns über eine Spende für die Vereinsarbeit.': 'If the program helps you, we appreciate a donation for our association’s work.',
     'Fehler melden': 'Report a bug',

@@ -1,8 +1,8 @@
 {
   "Name": "Frequenzbetrieb Plugin Organizer",
-  "Version": "0.7.0.0",
+  "Version": "0.7.1.0",
   "Author": "Frequenzbetrieb n.e.V.",
-  "Description": "Lädt deine Plugins per Tastendruck in Ableton Live – mit dem echten Bild des Plugins auf der Taste. Braucht den kostenlosen Frequenzbetrieb Plugin Organizer.",
+  "Description": "Loads your plugins into Ableton Live at the press of a key – with the plugin's real picture on the key. Requires the free Frequenzbetrieb Plugin Organizer.",
   "URL": "https://github.com/Frequenzbetrieb/plugin-organizer",
   "UUID": "de.frequenzbetrieb.pluginorganizer",
   "Icon": "imgs/plugin",
@@ -30,8 +30,8 @@
   "Actions": [
     {
       "UUID": "de.frequenzbetrieb.pluginorganizer.load",
-      "Name": "Plugin laden",
-      "Tooltip": "Lädt ein Plugin aus dem Plugin Organizer in Ableton Live – auf die ausgewählte oder eine neue Spur.",
+      "Name": "Load plugin",
+      "Tooltip": "Loads a plugin from Plugin Organizer into Ableton Live – onto the selected or a new track.",
       "Icon": "imgs/action",
       "PropertyInspectorPath": "ui/load.html",
       "Controllers": [
@@ -49,8 +49,8 @@
     },
     {
       "UUID": "de.frequenzbetrieb.pluginorganizer.browse",
-      "Name": "Browser öffnen",
-      "Tooltip": "Öffnet den Plugin-Browser auf dem Stream Deck: Bereiche, Kategorien und Plugins mit Bild durchblättern.",
+      "Name": "Open browser",
+      "Tooltip": "Opens the plugin browser on the Stream Deck: page through areas, categories and plugins with pictures.",
       "Icon": "imgs/action",
       "PropertyInspectorPath": "ui/browse.html",
       "Controllers": [
@@ -67,8 +67,8 @@
     },
     {
       "UUID": "de.frequenzbetrieb.pluginorganizer.slot",
-      "Name": "Browser-Taste",
-      "Tooltip": "Inhaltstaste des Plugin-Browsers (wird vom Browser-Profil benutzt).",
+      "Name": "Browser key",
+      "Tooltip": "Content key of the plugin browser (used by the browser profile).",
       "Icon": "imgs/action",
       "Controllers": [
         "Keypad"
@@ -85,8 +85,8 @@
     },
     {
       "UUID": "de.frequenzbetrieb.pluginorganizer.nav",
-      "Name": "Browser-Navigation",
-      "Tooltip": "Blättern und zurück im Plugin-Browser (wird vom Browser-Profil benutzt).",
+      "Name": "Browser navigation",
+      "Tooltip": "Paging and back in the plugin browser (used by the browser profile).",
       "Icon": "imgs/action",
       "Controllers": [
         "Keypad"

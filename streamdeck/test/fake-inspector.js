@@ -44,7 +44,7 @@ app.whenReady().then(async () => {
   await win.loadFile(path.join(sdp, 'ui', 'load.html'));
   await new Promise((r) => setTimeout(r, 800));
   const actionInfo = JSON.stringify({ action: ACTION, context: CTX, payload: { settings } });
-  await win.webContents.executeJavaScript(`connectElgatoStreamDeckSocket(${wss.address().port}, 'PI', 'registerPropertyInspector', '{}', ${JSON.stringify(actionInfo)})`);
+  await win.webContents.executeJavaScript(`connectElgatoStreamDeckSocket(${wss.address().port}, 'PI', 'registerPropertyInspector', ${JSON.stringify(JSON.stringify({ application: { language: process.env.SD_LANG || 'de' } }))}, ${JSON.stringify(actionInfo)})`);
   await new Promise((r) => setTimeout(r, 2500));
   fs.writeFileSync(out, (await win.capturePage()).toPNG());
   child.kill();

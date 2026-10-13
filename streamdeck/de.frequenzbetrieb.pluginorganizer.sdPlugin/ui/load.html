@@ -50,6 +50,7 @@
   <label><input type="checkbox" id="showName" checked /> Name auf der Taste anzeigen</label>
   <div id="status"></div>
 
+  <script src="i18n.js"></script>
   <script>
     // Stream Deck property inspector protocol: the software calls connectElgatoStreamDeckSocket().
     let socket;
@@ -101,6 +102,7 @@
 
     function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
       uuid = inUUID;
+      try { PI_I18N.setLang(JSON.parse(inInfo || '{}').application?.language); } catch { /* keep German */ }
       const info = JSON.parse(inActionInfo || '{}');
       action = info.action;
       settings = info.payload?.settings || {};

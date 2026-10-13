@@ -1,0 +1,21 @@
+{
+  "Description": "Lädt deine Plugins per Tastendruck in Ableton Live – mit dem echten Bild des Plugins auf der Taste. Braucht den kostenlosen Frequenzbetrieb Plugin Organizer.",
+  "Name": "Frequenzbetrieb Plugin Organizer",
+  "Localization": {},
+  "de.frequenzbetrieb.pluginorganizer.load": {
+    "Name": "Plugin laden",
+    "Tooltip": "Lädt ein Plugin aus dem Plugin Organizer in Ableton Live – auf die ausgewählte oder eine neue Spur."
+  },
+  "de.frequenzbetrieb.pluginorganizer.browse": {
+    "Name": "Browser öffnen",
+    "Tooltip": "Öffnet den Plugin-Browser auf dem Stream Deck: Bereiche, Kategorien und Plugins mit Bild durchblättern."
+  },
+  "de.frequenzbetrieb.pluginorganizer.slot": {
+    "Name": "Browser-Taste",
+    "Tooltip": "Inhaltstaste des Plugin-Browsers (wird vom Browser-Profil benutzt)."
+  },
+  "de.frequenzbetrieb.pluginorganizer.nav": {
+    "Name": "Browser-Navigation",
+    "Tooltip": "Blättern und zurück im Plugin-Browser (wird vom Browser-Profil benutzt)."
+  }
+}
