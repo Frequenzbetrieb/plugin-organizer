@@ -9,3 +9,6 @@ native/vst3snap/build/
 streamdeck/*.sdPlugin/bin/
 streamdeck/*.sdPlugin/imgs/*.png
 streamdeck/test/last-key.png
+streamdeck/*.sdPlugin/profiles/
+streamdeck/.profile-build/
+streamdeck/.check/

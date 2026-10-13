@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Browser öffnen</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 8px 10px; background: #2d2d2d; color: #d8d8d8; font: 12px -apple-system, "Segoe UI", sans-serif; }
+    .lbl { color: #9a9a9a; font-size: 11px; margin: 6px 0 3px; }
+    select { width: 100%; background: #3d3d3d; color: #eee; border: 1px solid #555; border-radius: 3px; padding: 4px; font: inherit; }
+    p { color: #9a9a9a; font-size: 11px; line-height: 1.45; }
+    b { color: #ddd; }
+  </style>
+</head>
+<body>
+  <div class="lbl">Start bei</div>
+  <select id="start">
+    <option value="home">Übersicht (Bereiche, Favoriten, Sammlungen)</option>
+    <option value="effects">Effekte</option>
+    <option value="instruments">Instrumente</option>
+    <option value="midi">MIDI FX</option>
+    <option value="stock">Stock (Ableton)</option>
+    <option value="max">Max for Live</option>
+    <option value="favorites">★ Favoriten</option>
+  </select>
+  <p>Ein Druck öffnet das Profil <b>„Frequenzbetrieb Browser“</b>: 12 Tasten mit Bild, rechts <b>◀ ▶</b> zum Blättern und <b>↩</b> eine Ebene zurück (in der Übersicht: zurück zu deinem Profil).</p>
+  <p>Auf einem Plugin: <b>kurz drücken</b> lädt es auf die ausgewählte Spur, <b>lang drücken</b> (½ s) auf eine neue Spur.</p>
+  <script>
+    let socket; let uuid; let settings = {};
+    function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
+      uuid = inUUID;
+      settings = JSON.parse(inActionInfo || '{}').payload?.settings || {};
+      document.querySelector('#start').value = settings.start || 'home';
+      socket = new WebSocket(`ws://127.0.0.1:${inPort}`);
+      socket.onopen = () => socket.send(JSON.stringify({ event: inRegisterEvent, uuid: inUUID }));
+    }
+    document.querySelector('#start').onchange = (e) => {
+      settings.start = e.target.value;
+      socket.send(JSON.stringify({ event: 'setSettings', context: uuid, payload: settings }));
+    };
+  </script>
+</body>
+</html>

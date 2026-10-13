@@ -1,6 +1,6 @@
 {
   "Name": "Frequenzbetrieb Plugin Organizer",
-  "Version": "0.3.1.0",
+  "Version": "0.4.0.0",
   "Author": "Frequenzbetrieb n.e.V.",
   "Description": "Lädt deine Plugins per Tastendruck in Ableton Live – mit dem echten Bild des Plugins auf der Taste. Braucht den kostenlosen Frequenzbetrieb Plugin Organizer.",
   "URL": "https://github.com/Frequenzbetrieb/plugin-organizer",
@@ -46,6 +46,68 @@
           "ShowTitle": true
         }
       ]
+    },
+    {
+      "UUID": "de.frequenzbetrieb.pluginorganizer.browse",
+      "Name": "Browser öffnen",
+      "Tooltip": "Öffnet den Plugin-Browser auf dem Stream Deck: Bereiche, Kategorien und Plugins mit Bild durchblättern.",
+      "Icon": "imgs/action",
+      "PropertyInspectorPath": "ui/browse.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/browse",
+          "TitleAlignment": "bottom",
+          "FontSize": "9",
+          "ShowTitle": true
+        }
+      ]
+    },
+    {
+      "UUID": "de.frequenzbetrieb.pluginorganizer.slot",
+      "Name": "Browser-Taste",
+      "Tooltip": "Inhaltstaste des Plugin-Browsers (wird vom Browser-Profil benutzt).",
+      "Icon": "imgs/action",
+      "Controllers": [
+        "Keypad"
+      ],
+      "VisibleInActionsList": false,
+      "States": [
+        {
+          "Image": "imgs/blank",
+          "TitleAlignment": "bottom",
+          "FontSize": "9",
+          "ShowTitle": true
+        }
+      ]
+    },
+    {
+      "UUID": "de.frequenzbetrieb.pluginorganizer.nav",
+      "Name": "Browser-Navigation",
+      "Tooltip": "Blättern und zurück im Plugin-Browser (wird vom Browser-Profil benutzt).",
+      "Icon": "imgs/action",
+      "Controllers": [
+        "Keypad"
+      ],
+      "VisibleInActionsList": false,
+      "States": [
+        {
+          "Image": "imgs/nav",
+          "TitleAlignment": "middle",
+          "FontSize": "14",
+          "ShowTitle": true
+        }
+      ]
+    }
+  ],
+  "Profiles": [
+    {
+      "Name": "profiles/Frequenzbetrieb Browser",
+      "DeviceType": 0,
+      "Readonly": false,
+      "DontAutoSwitchWhenInstalled": true
     }
   ]
 }

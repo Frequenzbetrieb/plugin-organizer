@@ -100,23 +100,59 @@ function start(ctx) {
         const type = url.searchParams.get('type');
         const source = url.searchParams.get('source');
         const category = url.searchParams.get('category');
+        const collection = url.searchParams.get('collection');
+        const favorites = url.searchParams.get('favorites') === '1';
         const q = (url.searchParams.get('q') || '').toLowerCase().split(/\s+/).filter(Boolean);
+        const st = ctx.getSettings();
+        const coll = collection && (st.collections || []).find((c) => c.id === collection);
+        const favs = new Set(st.favorites || []);
         const list = entries(ctx).filter((e) => (!type || e.type === type) && (!source || e.source === source)
+          && (!coll || e.ids.some((id) => coll.ids.includes(id)))
+          && (!favorites || e.ids.some((id) => favs.has(id)))
           && q.every((t) => `${e.name} ${e.vendor} ${e.category} ${e.sub}`.toLowerCase().includes(t)));
         return { list, category, q };
       };
+      if (req.method === 'GET' && url.pathname === '/collections') {
+        // Own collections and favourites, with plugin counts (for the Stream Deck overview).
+        const st = ctx.getSettings();
+        const all = entries(ctx);
+        const favs = new Set(st.favorites || []);
+        const collections = (st.collections || []).map((c) => ({ id: c.id, name: c.name, color: c.color, count: all.filter((e) => e.ids.some((id) => c.ids.includes(id))).length }));
+        return json(res, 200, { favorites: all.filter((e) => e.ids.some((id) => favs.has(id))).length, collections });
+      }
+      if (req.method === 'GET' && url.pathname === '/groupimage') {
+        // Sample picture for a group (type/source/category/collection): the first plugin in it that has one.
+        const { list: all, category } = filtered();
+        const sub = url.searchParams.get('sub');
+        const inCat = all.filter((e) => (!category || e.category === category) && (!sub || e.sub === sub));
+        const size = Math.min(288, Math.max(36, Number(url.searchParams.get('size')) || 144));
+        const withPic = inCat.sort((a, b) => a.name.localeCompare(b.name)).find((e) => { const f = pictureFor(ctx, e); return f && !f.endsWith('.icns'); });
+        return json(res, 200, { image: withPic ? await keyImage(ctx, withPic, size, url.searchParams.get('title') !== '0') : null, count: inCat.length });
+      }
       if (req.method === 'GET' && url.pathname === '/facets') {
         // Categories (with counts) for the chosen type/source – fills the category menu.
-        const { list } = filtered();
+        const { list: all, category } = filtered();
+        // by=sub: subcategories within one category (deck browser's intermediate level).
+        const bySub = url.searchParams.get('by') === 'sub';
+        const list = bySub && category ? all.filter((e) => e.category === category) : all;
         const counts = {};
-        for (const e of list) counts[e.category] = (counts[e.category] || 0) + 1;
+        for (const e of list) { const k = bySub ? e.sub : e.category; counts[k] = (counts[k] || 0) + 1; }
         const categories = Object.entries(counts).sort((a, b) => (a[0] === 'Unsorted') - (b[0] === 'Unsorted') || a[0].localeCompare(b[0]))
           .map(([name, count]) => ({ name, count }));
         return json(res, 200, { total: list.length, categories });
       }
       if (req.method === 'GET' && url.pathname === '/plugins') {
         const { list: all, category, q } = filtered();
-        const inCat = category ? all.filter((e) => e.category === category) : all;
+        const sub = url.searchParams.get('sub');
+        let inCat = all.filter((e) => (!category || e.category === category) && (!sub || e.sub === sub));
+        // variants=0: one key per plugin on the deck – keep stereo (or the plain name), drop "(m)", "(m->s)", "Mono" twins.
+        if (url.searchParams.get('variants') === '0') {
+          const base = (n) => n.replace(/\s*\((m|s|m->s|mono|stereo|mono\/stereo|\d+->\d+)\)\s*$/i, '').replace(/\s+(mono|stereo)$/i, '').toLowerCase();
+          const score = (n) => (/\((s|stereo)\)\s*$|\sstereo$/i.test(n) ? 0 : /\)\s*$|\smono$/i.test(n) ? 2 : 1);
+          const best = new Map();
+          for (const e of inCat) { const k = `${base(e.name)}|${e.vendor}`; const b = best.get(k); if (!b || score(e.name) < score(b.name)) best.set(k, e); }
+          inCat = [...best.values()];
+        }
         // Name matches first (starting with the query before containing it), then vendor/category matches.
         const j = q.join(' ');
         const rank = (e) => { const n = e.name.toLowerCase(); return !q.length ? 0 : n.startsWith(j) ? 0 : n.includes(j) ? 1 : q.every((t) => n.includes(t)) ? 2 : 3; };

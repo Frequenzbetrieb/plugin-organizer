@@ -8,6 +8,13 @@ const os = require('os');
 const path = require('path');
 
 const ACTION_LOAD = 'de.frequenzbetrieb.pluginorganizer.load';
+const ACTION_BROWSE = 'de.frequenzbetrieb.pluginorganizer.browse';
+const ACTION_SLOT = 'de.frequenzbetrieb.pluginorganizer.slot';
+const ACTION_NAV = 'de.frequenzbetrieb.pluginorganizer.nav';
+const BROWSER_PROFILE = 'profiles/Frequenzbetrieb Browser';
+const COLS = 4; // content keys per row on the 15-key deck (5th column = navigation)
+const PAGE = 12;
+const LONG_PRESS_MS = 500;
 
 // ---------- arguments from the Stream Deck software ----------
 const args = {};
@@ -115,10 +122,182 @@ async function fromInspector(msg) {
   }
 }
 
+// ---------- Browser (profile "Frequenzbetrieb Browser") ----------
+// Levels: home (areas, favourites, collections) → categories → plugins. One state per device.
+const browsers = new Map(); // device → state
+const slots = new Map(); // context → { device, index }
+const navs = new Map(); // context → { device, nav }
+const imageCache = new Map(); // key → { image, at }
+
+const qs = (params) => Object.entries(params).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+
+async function cachedImage(key, route) {
+  const c = imageCache.get(key);
+  if (c && Date.now() - c.at < 120000) return c.image;
+  const r = await api('GET', route);
+  const image = r.offline ? null : r.image || '';
+  if (!r.offline) imageCache.set(key, { image, at: Date.now() });
+  return image;
+}
+
+function browser(device) {
+  if (!browsers.has(device)) browsers.set(device, { level: 'home', page: 0, items: [], path: [] });
+  return browsers.get(device);
+}
+
+async function loadLevel(device) {
+  const b = browser(device);
+  if (b.level === 'home') {
+    const r = await api('GET', '/collections');
+    b.offline = Boolean(r.offline);
+    b.items = [
+      { kind: 'group', label: 'Effekte', params: { type: 'Effect' } },
+      { kind: 'group', label: 'Instrumente', params: { type: 'Instrument' } },
+      { kind: 'group', label: 'MIDI FX', params: { type: 'MIDI FX' } },
+      { kind: 'group', label: 'Stock', params: { source: 'Stock' } },
+      { kind: 'group', label: 'Max', params: { source: 'Max' } },
+      ...(r.favorites ? [{ kind: 'list', label: '★ Favoriten', params: { favorites: '1' } }] : []),
+      ...(r.collections || []).filter((c) => c.count).map((c) => ({ kind: 'list', label: c.name, params: { collection: c.id } })),
+    ];
+  } else if (b.level === 'categories') {
+    const r = await api('GET', `/facets?${qs(b.group.params)}`);
+    b.offline = Boolean(r.offline);
+    b.items = (r.categories || []).map((c) => ({ kind: 'category', label: c.name, count: c.count, params: { ...b.group.params, category: c.name } }));
+  } else if (b.level === 'subs') {
+    const r = await api('GET', `/facets?${qs({ ...b.catParams, by: 'sub' })}`);
+    b.offline = Boolean(r.offline);
+    b.items = [
+      { kind: 'list', label: `Alle ${b.catParams.category}`, count: r.total, params: b.catParams },
+      ...(r.categories || []).map((c) => ({ kind: 'list', label: c.name, count: c.count, params: { ...b.catParams, sub: c.name } })),
+    ];
+  } else {
+    const r = await api('GET', `/plugins?${qs(b.listParams)}&variants=0&limit=3000`);
+    b.offline = Boolean(r.offline);
+    b.items = (r.plugins || []).map((p) => ({ kind: 'plugin', label: p.name, id: p.id }));
+  }
+}
+
+function pages(b) { return Math.max(1, Math.ceil(b.items.length / PAGE)); }
+
+async function drawSlot(context) {
+  const slot = slots.get(context);
+  if (!slot) return;
+  const b = browser(slot.device);
+  const item = b.items[b.page * PAGE + slot.index];
+  const set = (image, title) => {
+    send({ event: 'setImage', context, payload: { image: image || '', target: 0 } });
+    send({ event: 'setTitle', context, payload: { title: title || '', target: 0 } });
+  };
+  if (b.offline && slot.index === 0) return set('', 'Organizer\nstarten');
+  if (!item) return set('', '');
+  if (item.kind === 'plugin') {
+    const image = await cachedImage(`p:${item.id}`, `/image?id=${encodeURIComponent(item.id)}&size=144`);
+    return set(image, keyTitle(item.label));
+  }
+  const image = await cachedImage(`g:${qs(item.params)}`, `/groupimage?${qs(item.params)}&size=144`);
+  set(image, `${keyTitle(item.label)}${item.count ? ` · ${item.count}` : ''}`);
+}
+
+function drawNav(context) {
+  const n = navs.get(context);
+  if (!n) return;
+  const b = browser(n.device);
+  const title = n.nav === 'prev' ? (b.page > 0 ? '◀' : '')
+    : n.nav === 'next' ? (b.page < pages(b) - 1 ? '▶' : '')
+      : (b.level === 'home' ? '↩\nzurück' : '↩');
+  const sub = n.nav !== 'back' && pages(b) > 1 ? `\n${b.page + 1}/${pages(b)}` : '';
+  send({ event: 'setTitle', context, payload: { title: title ? `${title}${sub}` : '', target: 0 } });
+}
+
+function drawAll(device) {
+  for (const [c, s] of slots) if (s.device === device) drawSlot(c);
+  for (const [c, n] of navs) if (n.device === device) drawNav(c);
+}
+
+async function go(device, change) {
+  const b = browser(device);
+  Object.assign(b, change);
+  await loadLevel(device);
+  drawAll(device);
+}
+
+async function pressSlot(context, long) {
+  const slot = slots.get(context);
+  if (!slot) return;
+  const b = browser(slot.device);
+  const item = b.items[b.page * PAGE + slot.index];
+  if (!item) return;
+  if (item.kind === 'plugin') {
+    const r = await api('POST', '/load', { id: item.id, newTrack: long });
+    return send({ event: r.ok ? 'showOk' : 'showAlert', context });
+  }
+  b.path.push({ level: b.level, page: b.page, group: b.group, listParams: b.listParams, catParams: b.catParams });
+  if (item.kind === 'group') return go(slot.device, { level: 'categories', group: item, page: 0 });
+  // Large categories first show their subcategories (Dynamics → Compressor, Limiter, …).
+  if (item.kind === 'category' && item.count > PAGE) {
+    const r = await api('GET', `/facets?${qs({ ...item.params, by: 'sub' })}`);
+    if ((r.categories || []).length > 1) return go(slot.device, { level: 'subs', catParams: item.params, page: 0 });
+  }
+  return go(slot.device, { level: 'plugins', listParams: item.params, page: 0 });
+}
+
+async function pressNav(context) {
+  const n = navs.get(context);
+  if (!n) return;
+  const b = browser(n.device);
+  if (n.nav === 'prev' && b.page > 0) { b.page -= 1; return drawAll(n.device); }
+  if (n.nav === 'next' && b.page < pages(b) - 1) { b.page += 1; return drawAll(n.device); }
+  if (n.nav === 'back') {
+    if (!b.path.length) return send({ event: 'switchToProfile', context: args.pluginUUID, device: n.device, payload: {} });
+    return go(n.device, { ...b.path.pop() });
+  }
+}
+
+// "Browser öffnen": reset to the chosen start and switch to the browser profile.
+async function openBrowser(context, device) {
+  const s = keys.get(context)?.settings || {};
+  browsers.set(device, { level: 'home', page: 0, items: [], path: [] });
+  const start = s.start || 'home';
+  const b = browser(device);
+  if (start !== 'home') {
+    b.path.push({ level: 'home', page: 0 });
+    const groups = { effects: { type: 'Effect' }, instruments: { type: 'Instrument' }, midi: { type: 'MIDI FX' }, stock: { source: 'Stock' }, max: { source: 'Max' } };
+    if (start === 'favorites') Object.assign(b, { level: 'plugins', listParams: { favorites: '1' } });
+    else Object.assign(b, { level: 'categories', group: { params: groups[start] || {} } });
+  }
+  await loadLevel(device);
+  send({ event: 'switchToProfile', context: args.pluginUUID, device, payload: { profile: BROWSER_PROFILE } });
+  setTimeout(() => drawAll(device), 300);
+}
+
+const pressedAt = new Map(); // context → time of keyDown (long press = new track)
+
 ws.on('message', (raw) => {
   let msg;
   try { msg = JSON.parse(raw); } catch { return; }
-  const { event, context, action } = msg;
+  const { event, context, action, device } = msg;
+  if (action === ACTION_SLOT || action === ACTION_NAV) {
+    if (event === 'willAppear') {
+      const { column, row } = msg.payload.coordinates || {};
+      if (action === ACTION_SLOT) { slots.set(context, { device, index: row * COLS + column }); if (!browsers.has(device)) loadLevel(device).then(() => drawAll(device)); else drawSlot(context); }
+      else { navs.set(context, { device, nav: msg.payload.settings?.nav || 'back' }); drawNav(context); }
+    }
+    if (event === 'willDisappear') { slots.delete(context); navs.delete(context); }
+    if (event === 'keyDown') pressedAt.set(context, Date.now());
+    if (event === 'keyUp') {
+      const long = Date.now() - (pressedAt.get(context) || Date.now()) >= LONG_PRESS_MS;
+      if (action === ACTION_SLOT) pressSlot(context, long); else pressNav(context);
+    }
+    return;
+  }
+  if (action === ACTION_BROWSE) {
+    if (event === 'willAppear' || event === 'didReceiveSettings') {
+      keys.set(context, { action, settings: msg.payload?.settings || {} });
+      send({ event: 'setTitle', context, payload: { title: 'Plugin\nBrowser', target: 0 } });
+    }
+    if (event === 'keyDown') openBrowser(context, device);
+    return;
+  }
   if (action && action !== ACTION_LOAD && event !== 'sendToPlugin') return;
   switch (event) {
     case 'willAppear':
