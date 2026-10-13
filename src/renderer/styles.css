@@ -342,3 +342,7 @@ body.mode-sidecar .search-wrap { flex: 1 1 90px; }
 .ls-foot .spacer { flex: 1; }
 .btn.danger { color: #ff6b6b; border-color: #ff6b6b55; }
 .srow .btn { white-space: nowrap; }
+.remote-box { align-items: flex-start; cursor: default; }
+.remote-box img { width: 140px; height: 140px; border-radius: 8px; background: #fff; flex: none; }
+.remote-box span { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.remote-box small { word-break: break-all; }

@@ -1,7 +1,7 @@
 {
   "name": "frequenzbetrieb-plugin-organizer",
   "productName": "Frequenzbetrieb Plugin Organizer",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Kostenloser Plugin-Organizer für Ableton Live: Plugins finden, sortieren, mit echten Vorschaubildern ansehen und per Klick oder Taste laden. Ein Open-Source-Projekt von Frequenzbetrieb n.e.V.",
   "main": "src/main.js",
   "scripts": {
@@ -124,5 +124,8 @@
       "artifactName": "Frequenzbetrieb-Plugin-Organizer-Windows-x64-Setup.${ext}"
     },
     "afterSign": "build/adhoc-sign.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
   }
 }

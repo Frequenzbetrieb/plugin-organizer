@@ -43,7 +43,8 @@ const DEFAULT_SETTINGS = {
   hideAfterLoad: false,
   language: 'auto', // auto | de | en
   autoUpdate: true,
-  autoRescan: true, // rescan by itself when plugins are installed or removed
+  autoRescan: true,
+  remoteEnabled: false, // phone/tablet remote in the local network (off until switched on) // rescan by itself when plugins are installed or removed
   firstSeen: {}, // plugin id → time it first showed up (after the very first scan) – drives the "Neu" badge // look for a new release on GitHub at start and every 6 hours
   windowMode: 'full', // full | sidecar | mini
   fullBounds: null, // size/position of the full window, restored when switching back
@@ -170,6 +171,13 @@ function registerHotkeys() {
 }
 
 let loading = false;
+let apiCtx = null;
+let remote = null;
+// Phone remote: runs only while switched on in the settings.
+function applyRemote() {
+  if (settings.remoteEnabled && !remote && apiCtx) remote = api.startRemote(apiCtx);
+  if (!settings.remoteEnabled && remote) { remote.close(); remote = null; }
+}
 async function loadById(id, opts = {}) {
   if (loading) return { ok: false, error: 'Lädt noch …' };
   loading = true;
@@ -489,6 +497,13 @@ app.whenReady().then(() => {
   ipcMain.handle('get-state', () => ({ lang: lang(), version: app.getVersion(), links: LINKS, library, settings, shots, snapshotsAvailable: snapshots.available(), liveIndexAvailable: liveindex.available(), platform: process.platform, supportedFormats: ableton.SUPPORTED_FORMATS }));
   ipcMain.handle('rescan', rescan);
   ipcMain.handle('backup-export', () => exportBackup());
+  ipcMain.handle('remote-info', async () => {
+    applyRemote();
+    await new Promise((r) => setTimeout(r, 300)); // let the server bind
+    const url = remote?.url() || null;
+    return { enabled: Boolean(settings.remoteEnabled), url, qr: url ? await require('qrcode').toDataURL(url, { margin: 1, width: 220 }) : null, ip: api.lanAddress() };
+  });
+  ipcMain.handle('remote-newkey', () => { settings.remoteKey = ''; writeJson(settingsFile(), settings); if (remote) { remote.close(); remote = null; } applyRemote(); return true; });
   // Factory reset: deletes the library, all pictures and settings, then restarts like a fresh install.
   ipcMain.handle('factory-reset', async () => {
     const { response } = process.env.PO_TEST_RESET ? { response: 1 } : await dialog.showMessageBox(win, {
@@ -557,6 +572,7 @@ app.whenReady().then(() => {
     writeJson(settingsFile(), settings);
     registerHotkeys();
     applyWindowSettings();
+    applyRemote();
     return settings;
   });
   ipcMain.handle('snapshot', (_e, ids, force) => {
@@ -688,7 +704,7 @@ app.whenReady().then(() => {
   createWindow();
   applyWindowSettings();
   // Local interface for the Stream Deck plugin.
-  api.start({
+  apiCtx = {
     version: app.getVersion(),
     dataDir,
     getLibrary: () => library,
@@ -700,7 +716,9 @@ app.whenReady().then(() => {
     isIndexing: () => Boolean(indexer?.running),
     iconPng: (icns) => scanner.iconPng(icns, path.join(dataDir(), 'icons')),
     log: logError,
-  });
+  };
+  api.start(apiCtx);
+  applyRemote();
   const area = require('electron').screen.getPrimaryDisplay().workArea;
   if (!settings.widthBumped) {
     settings.widthBumped = true;

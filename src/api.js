@@ -94,7 +94,23 @@ function start(ctx) {
   const server = http.createServer(async (req, res) => {
     // Only local tools with the key; reject browsers (they send an Origin header).
     if (req.headers.origin || req.headers['x-token'] !== token) return json(res, 403, { error: 'forbidden' });
-    const url = new URL(req.url, 'http://127.0.0.1');
+    return route(ctx, req, res, new URL(req.url, 'http://127.0.0.1'));
+  });
+
+  // Take the first free port and tell local tools where we are.
+  const tryPort = (i) => {
+    if (i >= PORTS.length) { ctx.log?.('api-error', 'kein freier Port'); return; }
+    server.once('error', () => tryPort(i + 1));
+    server.listen(PORTS[i], '127.0.0.1', () => {
+      fs.writeFileSync(path.join(ctx.dataDir(), 'api.json'), JSON.stringify({ port: PORTS[i], token, pid: process.pid }));
+    });
+  };
+  tryPort(0);
+  return server;
+}
+
+// The endpoints, shared by the local interface (Stream Deck) and the phone remote.
+async function route(ctx, req, res, url) {
     try {
       if (req.method === 'GET' && url.pathname === '/status') {
         return json(res, 200, { ok: true, app: 'Frequenzbetrieb Plugin Organizer', version: ctx.version, live: await ctx.isLiveRunning(), indexing: ctx.isIndexing() });
@@ -185,18 +201,48 @@ function start(ctx) {
       ctx.log?.('api-error', err.stack || err.message);
       return json(res, 500, { error: err.message });
     }
-  });
-
-  // Take the first free port and tell local tools where we are.
-  const tryPort = (i) => {
-    if (i >= PORTS.length) { ctx.log?.('api-error', 'kein freier Port'); return; }
-    server.once('error', () => tryPort(i + 1));
-    server.listen(PORTS[i], '127.0.0.1', () => {
-      fs.writeFileSync(path.join(ctx.dataDir(), 'api.json'), JSON.stringify({ port: PORTS[i], token, pid: process.pid }));
-    });
-  };
-  tryPort(0);
-  return server;
 }
 
-module.exports = { start };
+// ---------- Phone/tablet remote: a small web app in the local network ----------
+// Off by default. Reachable only with the secret key from the QR code (?k=…), which the page keeps in the URL.
+const REMOTE_PORTS = [47380, 47381, 47382];
+const REMOTE_PAGE = path.join(__dirname, 'remote', 'index.html');
+
+function lanAddress() {
+  for (const list of Object.values(require('os').networkInterfaces())) {
+    for (const a of list || []) if (a.family === 'IPv4' && !a.internal && !a.address.startsWith('169.254.')) return a.address;
+  }
+  return null;
+}
+
+function startRemote(ctx) {
+  let key = ctx.getSettings().remoteKey;
+  if (!key) { key = crypto.randomBytes(12).toString('hex'); ctx.saveSettings({ remoteKey: key }); }
+  let port = null;
+  const server = http.createServer(async (req, res) => {
+    const url = new URL(req.url, 'http://x');
+    const given = url.searchParams.get('k') || req.headers['x-remote-key'];
+    if (given !== key) { res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Plugin Organizer: QR-Code in der App neu scannen / scan the QR code in the app again.'); }
+    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      return res.end(fs.readFileSync(REMOTE_PAGE));
+    }
+    if (url.pathname.startsWith('/api/')) {
+      url.pathname = url.pathname.slice(4);
+      return route(ctx, req, res, url);
+    }
+    res.writeHead(404); return res.end();
+  });
+  const tryPort = (i) => {
+    if (i >= REMOTE_PORTS.length) { ctx.log?.('remote-error', 'kein freier Port'); return; }
+    server.once('error', () => tryPort(i + 1));
+    server.listen(REMOTE_PORTS[i], '0.0.0.0', () => { port = REMOTE_PORTS[i]; });
+  };
+  tryPort(0);
+  return {
+    close: () => server.close(),
+    url: () => { const ip = lanAddress(); return ip && port ? `http://${ip}:${port}/?k=${key}` : null; },
+  };
+}
+
+module.exports = { start, startRemote, lanAddress };

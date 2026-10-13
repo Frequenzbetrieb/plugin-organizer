@@ -912,6 +912,8 @@ function renderSettings() {
   $('#setAutoUpdate').checked = st.autoUpdate !== false;
   $('#setAutoRescan').checked = st.autoRescan !== false;
   $('#setLanguage').value = st.language || 'auto';
+  $('#setRemote').checked = Boolean(st.remoteEnabled);
+  showRemote();
   showLiveScript();
   window.api.autostartGet().then((on) => { $('#setAutostart').checked = on; });
   $('#setVersion').textContent = state.version || '';
@@ -986,6 +988,17 @@ setTimeout(async () => {
   if (live && !s.active) openLiveScriptGuide();
   else if (live && s.outdated) toast('Das Live-Skript wurde aktualisiert – Live bei Gelegenheit neu starten, damit es die neue Fassung lädt.');
 }, 6000);
+// Phone remote: QR code with the address (incl. secret key) in the local network.
+async function showRemote() {
+  const box = $('#remoteBox');
+  if (!state.settings.remoteEnabled) { box.classList.add('hidden'); return; }
+  const r = await window.api.remoteInfo();
+  box.classList.remove('hidden');
+  $('#remoteQr').src = r.qr || '';
+  $('#remoteUrl').textContent = r.url || 'Kein Netzwerk gefunden – ist der Rechner im WLAN/LAN?';
+}
+$('#setRemote').onchange = async (e) => { await save({ remoteEnabled: e.target.checked }); showRemote(); };
+$('#remoteNewKey').onclick = async () => { await window.api.remoteNewKey(); state.settings = (await window.api.getState()).settings; showRemote(); toast('Neuer Code – alte Links funktionieren nicht mehr.'); };
 $('#setLanguage').onchange = async (e) => { await save({ language: e.target.value }); location.reload(); };
 $('#factoryReset').onclick = async () => {
   const r = await window.api.factoryReset();

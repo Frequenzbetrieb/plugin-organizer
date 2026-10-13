@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14151a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Plugin Organizer</title>
+  <style>
+    :root { --bg: #14151a; --panel: #1d1f26; --card: #23262f; --line: #2e313b; --text: #e8e8ec; --muted: #8b8f9c; --accent: #ff7a3d; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.35 -apple-system, "Segoe UI", Roboto, sans-serif; }
+    header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: calc(10px + env(safe-area-inset-top)) 12px 8px; border-bottom: 1px solid var(--line); }
+    .row { display: flex; align-items: center; gap: 8px; }
+    #back { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: 20px; flex: none; }
+    #back[hidden] { display: none; }
+    h1 { font-size: 17px; margin: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #666; flex: none; }
+    .dot.on { background: #3ecf6e; }
+    #q { width: 100%; margin-top: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: 16px; }
+    .opts { display: flex; gap: 8px; margin-top: 8px; }
+    .chip { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: 14px; }
+    .chip.on { background: var(--accent); border-color: var(--accent); color: #111; font-weight: 600; }
+    main { padding: 12px 12px calc(80px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .tile { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid transparent; text-align: left; color: var(--text); padding: 0; font: inherit; }
+    .tile:active { border-color: var(--accent); transform: scale(.98); }
+    .pic { aspect-ratio: 16 / 10; background: #191b21 center / contain no-repeat; display: grid; place-items: center; font-size: 26px; font-weight: 700; color: #ffffff55; }
+    .meta { padding: 7px 9px 9px; }
+    .meta b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meta small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .group .pic { aspect-ratio: 16 / 9; }
+    .more { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 10px; }
+    #toast { position: fixed; left: 12px; right: 12px; bottom: calc(16px + env(safe-area-inset-bottom)); background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); padding: 12px 14px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    #toast.show { opacity: 1; }
+    #toast.err { border-left-color: #ff6b6b; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="row"><button id="back" hidden>‹</button><h1 id="title">Plugin Organizer</h1><span class="dot" id="live" title="Ableton Live"></span></div>
+    <input id="q" type="search" placeholder="Suchen …" autocomplete="off" />
+    <div class="opts"><button class="chip" id="newTrack">＋ Neue Spur</button></div>
+  </header>
+  <main id="grid"></main>
+  <div id="toast"></div>
+  <script>
+    const EN = !/^de/i.test(navigator.language || '');
+    const T = (de, en) => (EN ? en : de);
+    document.documentElement.lang = EN ? 'en' : 'de';
+    document.querySelector('#q').placeholder = T('Suchen …', 'Search …');
+    document.querySelector('#newTrack').textContent = T('＋ Neue Spur', '＋ New track');
+
+    const key = new URLSearchParams(location.search).get('k');
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const qs = (o) => Object.entries(o).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+    async function api(p, body) {
+      const r = await fetch(`/api${p}${p.includes('?') ? '&' : '?'}k=${key}`, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+      return r.json();
+    }
+
+    let newTrack = false;
+    try { newTrack = localStorage.getItem('po-newtrack') === '1'; } catch { /* private mode */ }
+    const showNew = () => $('#newTrack').classList.toggle('on', newTrack);
+    showNew();
+    $('#newTrack').onclick = () => { newTrack = !newTrack; try { localStorage.setItem('po-newtrack', newTrack ? '1' : '0'); } catch { /* ignore */ } showNew(); };
+
+    let toastTimer;
+    function toast(msg, err) {
+      const t = $('#toast');
+      t.textContent = msg; t.className = `show${err ? ' err' : ''}`;
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = ''; }, 2600);
+    }
+
+    // Navigation stack: { title, kind: 'home'|'cats'|'subs'|'list', params }
+    const stack = [];
+    const HOME_GROUPS = [
+      [T('Effekte', 'Effects'), { type: 'Effect' }], [T('Instrumente', 'Instruments'), { type: 'Instrument' }], ['MIDI FX', { type: 'MIDI FX' }],
+      ['Stock', { source: 'Stock' }], ['Max', { source: 'Max' }], ['Presets', { source: 'Preset' }],
+    ];
+
+    // Pictures load when a tile scrolls into view.
+    const io = new IntersectionObserver((list) => {
+      for (const e of list) {
+        if (!e.isIntersecting) continue;
+        io.unobserve(e.target);
+        const el = e.target;
+        const src = el.dataset.img;
+        api(src).then((r) => { if (r.image) { el.style.backgroundImage = `url(${r.image})`; el.textContent = ''; } }).catch(() => {});
+      }
+    }, { rootMargin: '300px' });
+
+    function tile({ title, sub, img, initials, cls = '', onTap }) {
+      const b = document.createElement('button');
+      b.className = `tile ${cls}`;
+      b.innerHTML = `<div class="pic">${esc(initials || '')}</div><div class="meta"><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+      if (img) { const pic = b.querySelector('.pic'); pic.dataset.img = img; io.observe(pic); }
+      b.onclick = onTap;
+      return b;
+    }
+    const initialsOf = (n) => n.split(/[\s\-_]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+    async function show() {
+      const top = stack[stack.length - 1];
+      $('#back').hidden = stack.length <= 1 && !$('#q').value;
+      $('#title').textContent = $('#q').value ? T('Suche', 'Search') : top.title;
+      const grid = $('#grid');
+      grid.innerHTML = '';
+      const q = $('#q').value.trim();
+      if (q) return showPlugins({ q });
+      if (top.kind === 'home') {
+        const c = await api('/collections');
+        const groups = [...HOME_GROUPS.map(([t, p]) => ({ t, p, kind: 'cats' })),
+          ...(c.favorites ? [{ t: T('★ Favoriten', '★ Favourites'), p: { favorites: '1' }, kind: 'list' }] : []),
+          ...(c.collections || []).filter((x) => x.count).map((x) => ({ t: x.name, p: { collection: x.id }, kind: 'list' }))];
+        for (const g of groups) {
+          grid.append(tile({ title: g.t, cls: 'group', img: `/groupimage?${qs({ ...g.p, size: 288, title: 0 })}`, initials: initialsOf(g.t),
+            onTap: () => { stack.push({ title: g.t, kind: g.kind, params: g.p }); show(); } }));
+        }
+      } else if (top.kind === 'cats') {
+        const r = await api(`/facets?${qs(top.params)}`);
+        for (const c of r.categories || []) {
+          const p = { ...top.params, category: c.name };
+          grid.append(tile({ title: c.name, sub: String(c.count), cls: 'group', img: `/groupimage?${qs({ ...p, size: 288, title: 0 })}`, initials: initialsOf(c.name),
+            onTap: () => { stack.push({ title: c.name, kind: c.count > 24 ? 'subs' : 'list', params: p }); show(); } }));
+        }
+      } else if (top.kind === 'subs') {
+        const r = await api(`/facets?${qs({ ...top.params, by: 'sub' })}`);
+        const subs = r.categories || [];
+        if (subs.length < 2) { top.kind = 'list'; return show(); }
+        grid.append(tile({ title: T(`Alle ${top.title}`, `All ${top.title}`), sub: String(r.total), cls: 'group', img: `/groupimage?${qs({ ...top.params, size: 288, title: 0 })}`, initials: '∗',
+          onTap: () => { stack.push({ title: top.title, kind: 'list', params: top.params }); show(); } }));
+        for (const c of subs) {
+          const p = { ...top.params, sub: c.name };
+          grid.append(tile({ title: c.name, sub: String(c.count), cls: 'group', img: `/groupimage?${qs({ ...p, size: 288, title: 0 })}`, initials: initialsOf(c.name),
+            onTap: () => { stack.push({ title: c.name, kind: 'list', params: p }); show(); } }));
+        }
+      } else {
+        showPlugins(top.params);
+      }
+    }
+
+    async function showPlugins(params) {
+      const r = await api(`/plugins?${qs({ ...params, variants: 0, limit: 400 })}`);
+      const grid = $('#grid');
+      grid.innerHTML = '';
+      for (const p of r.plugins || []) {
+        grid.append(tile({ title: p.name, sub: `${p.vendor} · ${p.sub && p.sub !== p.category ? p.sub : p.category}`,
+          img: `/image?${qs({ id: p.id, size: 288, title: 0 })}`, initials: initialsOf(p.name), onTap: () => load(p) }));
+      }
+      if (!r.plugins?.length) grid.innerHTML = `<div class="more">${T('Nichts gefunden.', 'Nothing found.')}</div>`;
+      else if (r.total > r.plugins.length) grid.insertAdjacentHTML('beforeend', `<div class="more">${T(`${r.plugins.length} von ${r.total} – Suche eingrenzen`, `${r.plugins.length} of ${r.total} – narrow your search`)}</div>`);
+    }
+
+    async function load(p) {
+      toast(T(`Lade ${p.name} …`, `Loading ${p.name} …`));
+      try {
+        const r = await api('/load', { id: p.id, newTrack });
+        toast(r.ok ? T(`✓ ${p.name} geladen`, `✓ ${p.name} loaded`) : (r.error || T('Laden fehlgeschlagen', 'Loading failed')), !r.ok);
+        if (r.ok && navigator.vibrate) navigator.vibrate(30);
+      } catch { toast(T('Keine Verbindung zum Plugin Organizer', 'No connection to Plugin Organizer'), true); }
+    }
+
+    $('#back').onclick = () => {
+      if ($('#q').value) { $('#q').value = ''; return show(); }
+      if (stack.length > 1) stack.pop();
+      show();
+    };
+    let t;
+    $('#q').oninput = () => { clearTimeout(t); t = setTimeout(show, 250); };
+
+    async function status() {
+      try { const s = await api('/status'); $('#live').classList.toggle('on', Boolean(s.live)); $('#live').title = s.live ? 'Ableton Live ✓' : 'Ableton Live ✕'; }
+      catch { $('#live').classList.remove('on'); }
+    }
+    stack.push({ title: 'Plugin Organizer', kind: 'home' });
+    show();
+    status();
+    setInterval(status, 10000);
+  </script>
+</body>
+</html>

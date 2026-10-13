@@ -132,6 +132,9 @@
       <label class="srow"><span><b>Beim Anmelden starten</b><small>Startet den Plugin Organizer automatisch, wenn du dich am Computer anmeldest.</small></span><input type="checkbox" id="setAutostart"></label>
       <div class="srow"><span><b>Live-Skript</b><small id="lsStatus">Prüfe …</small></span>
         <span class="keyrec"><button class="btn" id="lsCheck">Prüfen</button><button class="btn" id="lsGuide">Anleitung</button><button class="btn" id="lsInstall">Installieren</button></span></div>
+      <label class="srow"><span><b>Fernbedienung (Handy &amp; Tablet)</b><small>Plugin-Browser mit Bildern im Browser von Handy oder Tablet – im selben WLAN, ohne App. Einschalten, QR-Code scannen, antippen lädt in Live.</small></span><input type="checkbox" id="setRemote"></label>
+      <div class="srow remote-box hidden" id="remoteBox"><img id="remoteQr" alt=""><span><small id="remoteUrl"></small><small>Nur wer diesen Code hat, kommt hinein. macOS fragt beim ersten Mal, ob eingehende Verbindungen erlaubt sind – „Erlauben“ wählen.</small>
+        <button class="btn small" id="remoteNewKey">Neuen Code erzeugen</button></span></div>
       <label class="srow"><span><b>Neue Plugins automatisch finden</b><small>Beobachtet die Plugin-Ordner und scannt von selbst neu, wenn du etwas installierst oder löschst. Neue Plugins bekommen ein „NEU“.</small></span><input type="checkbox" id="setAutoRescan"></label>
       <div class="srow"><span><b>Sichern &amp; übertragen</b><small id="backupStatus">Tasten, Favoriten, Sammlungen, Kategorien, eigene Bilder, Plugin-Bilder und Einstellungen in einer Datei – zum Sichern oder für einen anderen Rechner.</small></span>
         <span class="keyrec"><button class="btn" id="backupExport">Sichern …</button><button class="btn" id="backupImport">Wiederherstellen …</button></span></div>
