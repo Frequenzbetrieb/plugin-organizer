@@ -100,9 +100,18 @@ async function fromInspector(msg) {
     const r = await api('GET', '/status');
     reply({ event: 'status', offline: Boolean(r.offline), live: r.live, version: r.version });
   }
+  // Filters from the menus: type, source, category, plus the search words.
+  const query = () => {
+    const f = { q: payload.q || '', type: payload.type || '', source: payload.source || '', category: payload.category || '' };
+    return Object.entries(f).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  };
   if (payload.event === 'search') {
-    const r = await api('GET', `/plugins?q=${encodeURIComponent(payload.q || '')}&limit=60`);
-    reply({ event: 'results', offline: Boolean(r.offline), plugins: r.plugins || [] });
+    const r = await api('GET', `/plugins?${query()}&limit=500`);
+    reply({ event: 'results', offline: Boolean(r.offline), plugins: r.plugins || [], total: r.total || 0 });
+  }
+  if (payload.event === 'facets') {
+    const r = await api('GET', `/facets?${query()}`);
+    reply({ event: 'facets', offline: Boolean(r.offline), categories: r.categories || [], total: r.total || 0 });
   }
 }
 

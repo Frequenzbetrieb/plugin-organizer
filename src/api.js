@@ -10,6 +10,8 @@ const { looseKey, buildIndex } = require('./shotkey');
 
 const PORTS = [47321, 47322, 47323, 47324];
 const groupKey = (p) => `${p.name.toLowerCase()}|${p.vendor.toLowerCase()}`;
+// For the list: "ANA 2" and "ANA2" by the same maker are one plugin.
+const mergeKey = (p) => `${p.name.toLowerCase().replace(/[^a-z0-9]/g, '')}|${p.vendor.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
 function json(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -33,7 +35,7 @@ function entries(ctx) {
     if (hidden.has(p.id)) continue;
     const o = settings.categoryOverrides?.[p.id];
     const q = o ? (typeof o === 'string' ? { ...p, category: o, sub: o } : { ...p, ...o }) : p;
-    const k = groupKey(q);
+    const k = mergeKey(q);
     const e = map.get(k);
     if (e) { if (!e.formats.includes(q.format)) e.formats.push(q.format); e.ids.push(q.id); }
     else map.set(k, { ...q, formats: [q.format], ids: [q.id] });
@@ -93,16 +95,34 @@ function start(ctx) {
       if (req.method === 'GET' && url.pathname === '/status') {
         return json(res, 200, { ok: true, app: 'Frequenzbetrieb Plugin Organizer', version: ctx.version, live: await ctx.isLiveRunning(), indexing: ctx.isIndexing() });
       }
-      if (req.method === 'GET' && url.pathname === '/plugins') {
+      // Filters: type (Effect|Instrument|MIDI FX), source (Plugin|Stock|Max), category, q (search words).
+      const filtered = () => {
+        const type = url.searchParams.get('type');
+        const source = url.searchParams.get('source');
+        const category = url.searchParams.get('category');
         const q = (url.searchParams.get('q') || '').toLowerCase().split(/\s+/).filter(Boolean);
+        const list = entries(ctx).filter((e) => (!type || e.type === type) && (!source || e.source === source)
+          && q.every((t) => `${e.name} ${e.vendor} ${e.category} ${e.sub}`.toLowerCase().includes(t)));
+        return { list, category, q };
+      };
+      if (req.method === 'GET' && url.pathname === '/facets') {
+        // Categories (with counts) for the chosen type/source – fills the category menu.
+        const { list } = filtered();
+        const counts = {};
+        for (const e of list) counts[e.category] = (counts[e.category] || 0) + 1;
+        const categories = Object.entries(counts).sort((a, b) => (a[0] === 'Unsorted') - (b[0] === 'Unsorted') || a[0].localeCompare(b[0]))
+          .map(([name, count]) => ({ name, count }));
+        return json(res, 200, { total: list.length, categories });
+      }
+      if (req.method === 'GET' && url.pathname === '/plugins') {
+        const { list: all, category, q } = filtered();
+        const inCat = category ? all.filter((e) => e.category === category) : all;
         // Name matches first (starting with the query before containing it), then vendor/category matches.
-        const rank = (e) => { const n = e.name.toLowerCase(); const j = q.join(' '); return !q.length ? 0 : n.startsWith(j) ? 0 : n.includes(j) ? 1 : q.every((t) => n.includes(t)) ? 2 : 3; };
-        const list = entries(ctx)
-          .filter((e) => q.every((t) => `${e.name} ${e.vendor} ${e.category} ${e.sub}`.toLowerCase().includes(t)))
-          .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
-          .slice(0, Number(url.searchParams.get('limit')) || 200)
-          .map(publicEntry);
-        return json(res, 200, { plugins: list });
+        const j = q.join(' ');
+        const rank = (e) => { const n = e.name.toLowerCase(); return !q.length ? 0 : n.startsWith(j) ? 0 : n.includes(j) ? 1 : q.every((t) => n.includes(t)) ? 2 : 3; };
+        const limit = Math.min(3000, Number(url.searchParams.get('limit')) || 500);
+        const list = inCat.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name)).slice(0, limit).map(publicEntry);
+        return json(res, 200, { total: inCat.length, plugins: list });
       }
       if (req.method === 'GET' && url.pathname === '/image') {
         const id = url.searchParams.get('id');

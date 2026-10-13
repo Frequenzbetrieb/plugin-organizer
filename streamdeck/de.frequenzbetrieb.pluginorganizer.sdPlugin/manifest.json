@@ -1,6 +1,6 @@
 {
   "Name": "Frequenzbetrieb Plugin Organizer",
-  "Version": "0.3.0.0",
+  "Version": "0.3.1.0",
   "Author": "Frequenzbetrieb n.e.V.",
   "Description": "Lädt deine Plugins per Tastendruck in Ableton Live – mit dem echten Bild des Plugins auf der Taste. Braucht den kostenlosen Frequenzbetrieb Plugin Organizer.",
   "URL": "https://github.com/Frequenzbetrieb/plugin-organizer",
@@ -9,12 +9,23 @@
   "Category": "Frequenzbetrieb",
   "CategoryIcon": "imgs/category",
   "CodePath": "bin/plugin.js",
-  "Nodejs": { "Version": "20", "Debug": "disabled" },
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "disabled"
+  },
   "SDKVersion": 2,
-  "Software": { "MinimumVersion": "6.5" },
+  "Software": {
+    "MinimumVersion": "6.5"
+  },
   "OS": [
-    { "Platform": "mac", "MinimumVersion": "12" },
-    { "Platform": "windows", "MinimumVersion": "10" }
+    {
+      "Platform": "mac",
+      "MinimumVersion": "12"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
   ],
   "Actions": [
     {
@@ -23,10 +34,17 @@
       "Tooltip": "Lädt ein Plugin aus dem Plugin Organizer in Ableton Live – auf die ausgewählte oder eine neue Spur.",
       "Icon": "imgs/action",
       "PropertyInspectorPath": "ui/load.html",
-      "Controllers": ["Keypad"],
+      "Controllers": [
+        "Keypad"
+      ],
       "SupportedInMultiActions": true,
       "States": [
-        { "Image": "imgs/key", "TitleAlignment": "bottom", "FontSize": "9", "ShowTitle": true }
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": "9",
+          "ShowTitle": true
+        }
       ]
     }
   ]

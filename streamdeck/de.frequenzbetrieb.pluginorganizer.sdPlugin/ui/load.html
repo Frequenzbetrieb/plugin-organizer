@@ -9,6 +9,12 @@
     label { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
     .row { margin: 6px 0; }
     .lbl { color: #9a9a9a; font-size: 11px; margin-bottom: 3px; }
+    select { width: 100%; box-sizing: border-box; background: #3d3d3d; color: #eee; border: 1px solid #555; border-radius: 3px; padding: 4px; font: inherit; }
+    .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .filters .full { grid-column: 1 / -1; }
+    .tag { font-size: 9px; font-weight: 700; padding: 0 4px; border-radius: 3px; background: #555; color: #fff; margin-left: 4px; vertical-align: 1px; }
+    .tag.stock { background: #3b6e8f; } .tag.max { background: #7a5a9a; }
+    #count { font-size: 11px; color: #9a9a9a; margin-top: 4px; }
     input[type=search] { width: 100%; box-sizing: border-box; background: #3d3d3d; color: #eee; border: 1px solid #555; border-radius: 3px; padding: 5px 6px; font: inherit; }
     #results { max-height: 220px; overflow-y: auto; border: 1px solid #444; border-radius: 3px; margin-top: 4px; }
     .item { padding: 5px 7px; cursor: pointer; border-bottom: 1px solid #383838; }
@@ -26,8 +32,18 @@
     <div class="lbl">Plugin</div>
     <div id="chosen">Noch keins gewählt</div>
   </div>
+  <div class="row filters">
+    <div><div class="lbl">Typ</div><select id="type">
+      <option value="">Alle</option><option value="Effect">Effekte</option><option value="Instrument">Instrumente</option><option value="MIDI FX">MIDI FX</option>
+    </select></div>
+    <div><div class="lbl">Quelle</div><select id="source">
+      <option value="">Alle</option><option value="Plugin">Plugins</option><option value="Stock">Stock (Ableton)</option><option value="Max">Max for Live</option>
+    </select></div>
+    <div class="full"><div class="lbl">Kategorie</div><select id="category"><option value="">Alle Kategorien</option></select></div>
+  </div>
   <div class="row">
     <input id="q" type="search" placeholder="Suchen – Name, Hersteller, Kategorie …" autocomplete="off" />
+    <div id="count"></div>
     <div id="results"></div>
   </div>
   <label><input type="checkbox" id="newTrack" /> Auf neuer Spur laden</label>
@@ -37,6 +53,7 @@
   <script>
     // Stream Deck property inspector protocol: the software calls connectElgatoStreamDeckSocket().
     let socket;
+    let pendingCategory = '';
     let uuid;
     let action;
     let settings = {};
@@ -55,7 +72,7 @@
     }
 
     function showResults(list) {
-      $('#results').innerHTML = list.map((p) => `<div class="item${p.id === settings.pluginId ? ' sel' : ''}" data-id="${esc(p.id)}">${esc(p.name)}<small>${esc(p.vendor)} · ${esc(p.sub && p.sub !== p.category ? p.sub : p.category)}</small></div>`).join('')
+      $('#results').innerHTML = list.map((p) => `<div class="item${p.id === settings.pluginId ? ' sel' : ''}" data-id="${esc(p.id)}">${esc(p.name)}${p.source === 'Stock' ? '<span class="tag stock">STOCK</span>' : p.source === 'Max' ? '<span class="tag max">MAX</span>' : ''}<small>${esc(p.vendor)} · ${esc(p.sub && p.sub !== p.category ? p.sub : p.category)}</small></div>`).join('')
         || '<div class="item"><small>Nichts gefunden.</small></div>';
       $('#results').querySelectorAll('[data-id]').forEach((el) => {
         el.onclick = () => {
@@ -68,8 +85,17 @@
       });
     }
 
+    // Current filters (remembered per key in its settings).
+    const filters = () => ({ q: $('#q').value, type: $('#type').value, source: $('#source').value, category: $('#category').value });
+    function search() { toPlugin({ event: 'search', ...filters() }); }
+    function refreshCategories() { toPlugin({ event: 'facets', ...filters(), category: '', q: '' }); }
+    function rememberFilters() { settings.filter = { type: $('#type').value, source: $('#source').value, category: $('#category').value }; save(); }
     let timer;
-    $('#q').oninput = () => { clearTimeout(timer); timer = setTimeout(() => toPlugin({ event: 'search', q: $('#q').value }), 200); };
+    $('#q').oninput = () => { clearTimeout(timer); timer = setTimeout(search, 200); };
+    $('#type').onchange = () => { $('#category').value = ''; rememberFilters(); refreshCategories(); search(); };
+    $('#source').onchange = () => { $('#category').value = ''; rememberFilters(); refreshCategories(); search(); };
+    $('#category').onchange = () => { rememberFilters(); search(); };
+    let lastTotal = 0;
     $('#newTrack').onchange = (e) => { settings.newTrack = e.target.checked; save(); };
     $('#showName').onchange = (e) => { settings.showName = e.target.checked; save(); };
 
@@ -82,14 +108,29 @@
       socket.onopen = () => {
         socket.send(JSON.stringify({ event: inRegisterEvent, uuid: inUUID }));
         showChosen();
+        const f = settings.filter || {};
+        $('#type').value = f.type || '';
+        $('#source').value = f.source || '';
         toPlugin({ event: 'status' });
-        toPlugin({ event: 'search', q: settings.pluginName || '' });
+        refreshCategories();
+        pendingCategory = f.category || '';
+        search();
       };
       socket.onmessage = (e) => {
         const msg = JSON.parse(e.data);
         if (msg.event !== 'sendToPropertyInspector') return;
         const p = msg.payload;
-        if (p.event === 'results') showResults(p.plugins);
+        if (p.event === 'results') {
+          showResults(p.plugins);
+          $('#count').textContent = p.total > p.plugins.length ? `${p.plugins.length} von ${p.total} – Suche oder Kategorie eingrenzen` : `${p.total} Einträge`;
+        }
+        if (p.event === 'facets') {
+          const sel = $('#category');
+          const keep = pendingCategory || sel.value;
+          sel.innerHTML = `<option value="">Alle Kategorien (${p.total})</option>` + p.categories.map((c) => `<option value="${esc(c.name)}">${esc(c.name)} (${c.count})</option>`).join('');
+          if (keep && p.categories.some((c) => c.name === keep)) sel.value = keep;
+          if (pendingCategory) { pendingCategory = ''; search(); }
+        }
         if (p.event === 'status' || p.offline) {
           const st = $('#status');
           st.className = p.offline ? 'err' : '';
