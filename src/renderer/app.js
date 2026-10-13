@@ -89,6 +89,9 @@ function items() {
 
 const keyFor = (it) => Object.entries(state.settings.mappings).find(([, v]) => it.ids.includes(mapVal(v).id))?.[0];
 const isFav = (it) => it.ids.some((id) => state.settings.favorites.includes(id));
+// "Neu": showed up in a scan within the last 14 days.
+const NEW_DAYS = 14;
+const isNew = (it) => it.ids.some((id) => (state.settings.firstSeen?.[id] || 0) > Date.now() - NEW_DAYS * 86400000);
 const customImg = (it) => it.ids.map((id) => state.settings.images[id]).find(Boolean);
 
 function matches(it) {
@@ -311,7 +314,9 @@ function render() {
   if (!state.formats) state.formats = new Set(state.supportedFormats);
   const all = items().filter(matches).filter((it) =>
     (state.source === 'All' ? it.source !== 'Preset' : it.source === state.source)
-    && (!$('#onlyFavorites').checked || isFav(it)) && (!$('#onlyMapped').checked || keyFor(it)));
+    && (!$('#onlyFavorites').checked || isFav(it)) && (!$('#onlyMapped').checked || keyFor(it)) && (!$('#onlyNew').checked || isNew(it)));
+  const nNew = items().filter(isNew).length;
+  $('#newCount').textContent = nNew ? nNew : '';
   renderFilterBar(all);
 
   renderCollections(all);
@@ -378,6 +383,7 @@ function card(it) {
     <div class="thumb" style="background:linear-gradient(135deg,hsl(${h} 45% 32%),hsl(${(h + 40) % 360} 50% 20%))">${thumb}</div>
     ${key ? `<div class="keytag">${mapVal(state.settings.mappings[key]).newTrack ? '＋' : ''}${esc(keyLabel(key))}</div>` : ''}
     ${isFav(it) ? '<div class="fav">★</div>' : ''}
+    ${isNew(it) ? '<div class="newtag">NEU</div>' : ''}
     <div class="name" title="${esc(it.name)}">${esc(it.name)}</div>
     <div class="vendor">${esc(it.vendor)}</div>
     <div class="badges"><span class="badge cat">${esc(it.sub && it.sub !== it.category ? it.sub : it.category)}</span>${it.formats.map((f) => `<span class="badge">${f}</span>`).join('')}</div>`;
@@ -735,7 +741,7 @@ $('#search').onkeydown = (e) => {
 $('#vendorSearch').oninput = (e) => { state.vendorQuery = e.target.value; render(); };
 $('#sort').onchange = (e) => { state.sort = e.target.value; render(); };
 $('#showHidden').onchange = (e) => { state.showHidden = e.target.checked; state.selected.clear(); render(); };
-for (const id of ['groupFormats', 'onlyFavorites', 'onlyMapped']) $(`#${id}`).onchange = render;
+for (const id of ['groupFormats', 'onlyFavorites', 'onlyMapped', 'onlyNew']) $(`#${id}`).onchange = render;
 $('#globalHotkeys').onchange = (e) => save({ globalHotkeys: e.target.checked });
 $('#showDaw').onchange = async (e) => { await save({ showDawShortcuts: e.target.checked }); renderKeyboard(); };
 $('#kbLayout').onchange = async (e) => { await save({ keyboardLayout: e.target.value }); renderKeyboard(); };
@@ -752,6 +758,7 @@ $('#toggleKb').onclick = () => {
 $('#rescan').onclick = async () => {
   $('#rescan').disabled = true;
   state.library = await window.api.rescan();
+  state.settings = (await window.api.getState()).settings;
   $('#rescan').disabled = false;
   toast(`${state.library.length} Plugins gefunden`);
   render();
@@ -902,6 +909,7 @@ function renderSettings() {
   $('#setOnTop').checked = Boolean(st.alwaysOnTop);
   $('#setHideAfter').checked = Boolean(st.hideAfterLoad);
   $('#setAutoUpdate').checked = st.autoUpdate !== false;
+  $('#setAutoRescan').checked = st.autoRescan !== false;
   window.api.autostartGet().then((on) => { $('#setAutostart').checked = on; });
   $('#setVersion').textContent = state.version || '';
   $('#setToggleKey').textContent = accelLabel(st.toggleKey);
@@ -925,6 +933,22 @@ $('#hideBtn').onclick = () => window.api.toggleWindow();
 
 // ---------- Updates ----------
 $('#setAutostart').onchange = async (e) => { e.target.checked = await window.api.autostartSet(e.target.checked); };
+$('#setAutoRescan').onchange = async (e) => { await save({ autoRescan: e.target.checked }); renderSettings(); };
+const mb = (n) => `${Math.round(n / 1e6)} MB`;
+$('#backupExport').onclick = async () => {
+  $('#backupStatus').textContent = 'Sichere … (die Plugin-Bilder brauchen einen Moment)';
+  const r = await window.api.backupExport();
+  $('#backupStatus').textContent = r.ok ? `Gesichert: ${r.file.split(/[\\/]/).pop()} (${mb(r.size)})` : r.error ? `Sichern fehlgeschlagen: ${r.error}` : 'Abgebrochen.';
+};
+$('#backupImport').onclick = async () => {
+  $('#backupStatus').textContent = 'Stelle wieder her …';
+  const r = await window.api.backupImport();
+  if (!r.ok) $('#backupStatus').textContent = r.error ? `Wiederherstellen fehlgeschlagen: ${r.error}` : 'Abgebrochen.';
+};
+window.api.on('rescanned', ({ added, removed }) => {
+  const parts = [added && `${added} neu`, removed && `${removed} entfernt`].filter(Boolean).join(', ');
+  toast(`Plugin-Ordner geändert – ${parts}`);
+});
 $('#setAutoUpdate').onchange = async (e) => { await save({ autoUpdate: e.target.checked }); renderSettings(); };
 $('#updateCheck').onclick = () => { $('#updateStatus').textContent = 'Suche …'; window.api.updateCheck(); };
 window.api.on('update', (u) => {
@@ -981,7 +1005,8 @@ $('#liveIdxBtn').onclick = async () => {
 };
 $('#idxStop').onclick = () => window.api.liveIndexStop();
 window.api.on('scan-progress', ({ done, total }) => { $('#status').textContent = `Scanne Plugins … ${done}/${total}`; });
-window.api.on('library', (lib) => { state.library = lib; render(); });
+// A rescan also updates "firstSeen" (NEU badges) in the settings.
+window.api.on('library', async (lib) => { state.library = lib; state.settings = (await window.api.getState()).settings; render(); });
 window.api.on('loaded', ({ name }) => toast(`✓ ${name} geladen`));
 window.api.on('load-error', ({ error }) => toast(error, true));
 

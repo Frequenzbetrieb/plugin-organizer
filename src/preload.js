@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld('api', {
   toggleWindow: () => ipcRenderer.invoke('toggle-window'),
   openLink: (key) => ipcRenderer.invoke('open-link', key),
   updateCheck: () => ipcRenderer.invoke('update-check'),
+  backupExport: () => ipcRenderer.invoke('backup-export'),
+  backupImport: () => ipcRenderer.invoke('backup-import'),
   autostartGet: () => ipcRenderer.invoke('autostart-get'),
   autostartSet: (on) => ipcRenderer.invoke('autostart-set', on),
   updateInstall: () => ipcRenderer.invoke('update-install'),

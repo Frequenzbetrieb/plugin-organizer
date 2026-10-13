@@ -40,7 +40,9 @@ const DEFAULT_SETTINGS = {
   alwaysOnTop: false,
   toggleKey: 'PageUp', // global key that hides/shows the app
   hideAfterLoad: false,
-  autoUpdate: true, // look for a new release on GitHub at start and every 6 hours
+  autoUpdate: true,
+  autoRescan: true, // rescan by itself when plugins are installed or removed
+  firstSeen: {}, // plugin id → time it first showed up (after the very first scan) – drives the "Neu" badge // look for a new release on GitHub at start and every 6 hours
   windowMode: 'full', // full | sidecar | mini
   fullBounds: null, // size/position of the full window, restored when switching back
   showDawShortcuts: true,
@@ -199,10 +201,122 @@ async function loadByIdInner(id, opts = {}) {
   }
 }
 
+let scanning = null;
 async function rescan() {
-  library = livedb.annotate(await scanner.scan((done, total) => send('scan-progress', { done, total }), dataDir()));
-  writeJson(libraryFile(), library);
-  return library;
+  if (scanning) return scanning; // one scan at a time; callers share the result
+  scanning = (async () => {
+    const before = new Set(library.map((p) => p.id));
+    library = livedb.annotate(await scanner.scan((done, total) => send('scan-progress', { done, total }), dataDir()));
+    writeJson(libraryFile(), library);
+    // Remember what's new since last time (nothing is "new" on the very first scan).
+    const added = before.size ? library.filter((p) => !before.has(p.id)) : [];
+    const now = Date.now();
+    const ids = new Set(library.map((p) => p.id));
+    const seen = Object.fromEntries(Object.entries(settings.firstSeen || {}).filter(([id]) => ids.has(id)));
+    for (const p of added) seen[p.id] = now;
+    settings.firstSeen = seen;
+    writeJson(settingsFile(), settings);
+    return { added: added.length, removed: [...before].filter((id) => !ids.has(id)).length };
+  })();
+  try { await scanning; return library; } finally { scanning = null; }
+}
+
+// Watches the plugin folders; a quiet rescan runs once installs have settled.
+function watchPlugins() {
+  let timer;
+  const trigger = () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      if (!settings.autoRescan || loading || indexer?.running) return;
+      const n = library.length;
+      const ids = new Set(library.map((p) => p.id));
+      await rescan();
+      const added = library.filter((p) => !ids.has(p.id)).length;
+      const removed = n + added - library.length;
+      send('library', library);
+      if (added || removed) send('rescanned', { added, removed });
+    }, 15000);
+  };
+  for (const d of scanner.watchDirs()) {
+    try { fs.watch(d, { recursive: true }, trigger); } catch (e) { logError('watch', `${d}: ${e.message}`); }
+  }
+}
+
+// ---------- Backup: settings, own pictures and plugin pictures in one archive ----------
+// What a backup carries over (window positions and machine-specific things stay behind).
+const BACKUP_KEYS = ['mappings', 'favorites', 'images', 'hidden', 'categoryOverrides', 'collections', 'modifier', 'keyboardLayout',
+  'alwaysOnTop', 'toggleKey', 'hideAfterLoad', 'windowMode', 'showDawShortcuts', 'globalHotkeys', 'loadStats', 'sessionFolders',
+  'autoUpdate', 'autoRescan', 'firstSeen'];
+const tar = (args) => new Promise((r, j) => require('child_process').execFile('tar', args, { maxBuffer: 1e8 }, (e, so, se) => (e ? j(new Error(se || e.message)) : r())));
+
+async function exportBackup() {
+  const stamp = new Date().toISOString().slice(0, 10);
+  const r = await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('documents'), `Plugin-Organizer-Sicherung-${stamp}.pobackup`), filters: [{ name: 'Plugin-Organizer-Sicherung', extensions: ['pobackup'] }] });
+  if (r.canceled) return { ok: false };
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'po-backup-'));
+  try {
+    // Own pictures can live anywhere on disk: copy them in, under a neutral name.
+    fs.mkdirSync(path.join(tmp, 'images'));
+    const images = {};
+    for (const [id, file] of Object.entries(settings.images || {})) {
+      if (!fs.existsSync(file)) continue;
+      const name = `${Object.keys(images).length}${path.extname(file)}`;
+      fs.copyFileSync(file, path.join(tmp, 'images', name));
+      images[id] = name;
+    }
+    const shotsDir = path.join(dataDir(), 'shots');
+    const relShots = {};
+    for (const [k, v] of Object.entries(shots)) relShots[k] = v === 'failed' ? v : path.relative(shotsDir, v);
+    const data = { app: 'Frequenzbetrieb Plugin Organizer', version: app.getVersion(), created: new Date().toISOString(), platform: process.platform,
+      settings: Object.fromEntries(BACKUP_KEYS.filter((k) => k in settings).map((k) => [k, settings[k]])), images, shots: relShots };
+    fs.writeFileSync(path.join(tmp, 'backup.json'), JSON.stringify(data));
+    const args = ['-cf', r.filePath, '-C', tmp, 'backup.json', 'images'];
+    if (fs.existsSync(shotsDir)) args.push('-C', dataDir(), 'shots');
+    await tar(args);
+    return { ok: true, file: r.filePath, size: fs.statSync(r.filePath).size };
+  } catch (e) {
+    logError('backup-export', e.stack || e.message);
+    return { ok: false, error: e.message };
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+}
+
+async function importBackup() {
+  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Plugin-Organizer-Sicherung', extensions: ['pobackup'] }] });
+  if (r.canceled) return { ok: false };
+  const ok = await dialog.showMessageBox(win, { type: 'question', buttons: ['Wiederherstellen', 'Abbrechen'], defaultId: 0, cancelId: 1,
+    message: 'Sicherung wiederherstellen?', detail: 'Tasten, Favoriten, Sammlungen, Kategorien, eigene Bilder und Einstellungen werden durch die Sicherung ersetzt. Plugin-Bilder aus der Sicherung kommen dazu.' });
+  if (ok.response !== 0) return { ok: false };
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'po-restore-'));
+  try {
+    await tar(['-xf', r.filePaths[0], '-C', tmp]);
+    const data = JSON.parse(fs.readFileSync(path.join(tmp, 'backup.json'), 'utf8'));
+    if (data.app !== 'Frequenzbetrieb Plugin Organizer') throw new Error('Das ist keine Sicherung des Plugin Organizers.');
+    // Plugin pictures: copy over and point to this machine's data folder.
+    const shotsDir = path.join(dataDir(), 'shots');
+    if (fs.existsSync(path.join(tmp, 'shots'))) fs.cpSync(path.join(tmp, 'shots'), shotsDir, { recursive: true });
+    for (const [k, v] of Object.entries(data.shots || {})) {
+      if (v === 'failed') { if (!shots[k]) shots[k] = v; } else shots[k] = path.join(shotsDir, v);
+    }
+    writeJson(shotsFile(), shots);
+    // Own pictures move into the data folder.
+    const imgDir = path.join(dataDir(), 'images');
+    fs.mkdirSync(imgDir, { recursive: true });
+    const images = {};
+    for (const [id, name] of Object.entries(data.images || {})) {
+      const dest = path.join(imgDir, `${Date.now()}-${name}`);
+      fs.copyFileSync(path.join(tmp, 'images', name), dest);
+      images[id] = dest;
+    }
+    settings = { ...settings, ...data.settings, images };
+    writeJson(settingsFile(), settings);
+    registerHotkeys();
+    applyWindowSettings();
+    win.reload();
+    return { ok: true };
+  } catch (e) {
+    logError('backup-import', e.stack || e.message);
+    return { ok: false, error: e.message };
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 }
 
 // Small always-on-top window that shows indexing progress, even over Live in full screen.
@@ -351,6 +465,8 @@ app.whenReady().then(() => {
   ipcMain.handle('open-link', (_e, key) => LINKS[key] && shell.openExternal(LINKS[key]));
   ipcMain.handle('get-state', () => ({ version: app.getVersion(), links: LINKS, library, settings, shots, snapshotsAvailable: snapshots.available(), liveIndexAvailable: liveindex.available(), platform: process.platform, supportedFormats: ableton.SUPPORTED_FORMATS }));
   ipcMain.handle('rescan', rescan);
+  ipcMain.handle('backup-export', () => exportBackup());
+  ipcMain.handle('backup-import', () => importBackup());
   // Updates: check on demand or automatically; install downloads, swaps the app and restarts.
   let update = null;
   const checkUpdate = async (manual) => {
@@ -501,6 +617,7 @@ app.whenReady().then(() => {
   const stale = library.some((p) => (p.format === 'AU' && !p.au) || !p.type) || settings.scannerVersion !== SCANNER_VERSION;
   if (stale) { settings.scannerVersion = SCANNER_VERSION; writeJson(settingsFile(), settings); }
   if (!library.length || stale) rescan().then(() => win.webContents.send('library', library));
+  watchPlugins();
 });
 
 app.on('will-quit', () => globalShortcut.unregisterAll());

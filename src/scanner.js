@@ -405,4 +405,9 @@ async function iconPng(icns, cacheDir) {
   return ok !== null && fs.existsSync(out) ? out : null;
 }
 
-module.exports = { scanPresets, scan, iconPng };
+// Plugin folders that exist on this machine – watched for installs/uninstalls.
+function watchDirs() {
+  return [...new Set(SOURCES.flatMap((s) => s.dirs))].filter((d) => fs.existsSync(d));
+}
+
+module.exports = { scanPresets, scan, iconPng, watchDirs };
