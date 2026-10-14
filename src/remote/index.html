@@ -44,7 +44,9 @@
   <main id="grid"></main>
   <div id="toast"></div>
   <script>
-    const EN = !/^de/i.test(navigator.language || '');
+    // Language: ?lang=de|en, otherwise the device's language.
+    const LANG = new URLSearchParams(location.search).get('lang');
+    const EN = LANG ? LANG === 'en' : !/^de/i.test(navigator.language || '');
     const T = (de, en) => (EN ? en : de);
     document.documentElement.lang = EN ? 'en' : 'de';
     document.querySelector('#q').placeholder = T('Suchen …', 'Search …');

@@ -637,6 +637,16 @@ app.whenReady().then(() => {
       return { ok: true };
     } catch (e) { logError('update', e.stack || e.message); return { ok: false, error: e.message }; }
   });
+  // Dev helper: PO_DEMO=<name> records a demo video (tools/demo, not shipped) and quits.
+  if (process.env.PO_DEMO) setTimeout(async () => {
+    try {
+      await require(path.join(__dirname, '..', 'tools', 'demo', 'run.js'))({
+        win, toggleQuick, hideQuick, getQuick: () => quickWin, settings: () => settings,
+        remotePort: () => Number((remote?.url() || '').match(/:(\d+)\//)?.[1]) || 47380,
+      });
+    } catch (e) { logError('demo', e.stack || e.message); }
+    app.exit(0);
+  }, 5000);
   // Dev helper: PO_QUICK_SHOT=<png> [PO_QUICK_Q=text] opens the quick search and saves a picture of it.
   if (process.env.PO_QUICK_SHOT) setTimeout(async () => {
     toggleQuick();
