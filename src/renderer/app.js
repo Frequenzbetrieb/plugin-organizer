@@ -421,7 +421,8 @@ function renderVendors(list) {
   const vq = state.vendorQuery.toLowerCase();
   const entries = Object.entries(count(list, (i) => i.vendor))
     .filter(([v]) => v.toLowerCase().includes(vq))
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    // Alphabetical (case-insensitive, umlauts in place).
+    .sort((a, b) => a[0].localeCompare(b[0], 'de', { sensitivity: 'base' }));
   el.innerHTML = '';
   const limit = state.vendorsAll || vq ? entries.length : 10;
   const visible = entries.slice(0, limit);

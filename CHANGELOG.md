@@ -2,6 +2,10 @@
 
 Alle Änderungen am Frequenzbetrieb Plugin Organizer. Downloads zu jeder Version: [Releases](https://github.com/Frequenzbetrieb/plugin-organizer/releases).
 
+## [0.11.1] – 2026-10-17
+- Herstellerliste links alphabetisch sortiert.
+- Handy-Fernbedienung: Sprache per `?lang=de|en` wählbar.
+
 ## [0.11.0] – 2026-10-13
 - **Schnellsuche über Live:** globale Taste (Standard ⌃⌥Leertaste) öffnet ein kleines Suchfenster über Live – tippen, Enter lädt, ⇧ neue Spur, ⌥ ersetzen. Ohne Eingabe: zuletzt und meist geladen, Ketten.
 - **Zuletzt geladen / Meistgeladen:** als Sortierung, in der Schnellsuche, auf dem Stream Deck und auf dem Handy.

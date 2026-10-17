@@ -2,6 +2,10 @@
 
 All changes to the Frequenzbetrieb Plugin Organizer. Downloads for every version: [Releases](https://github.com/Frequenzbetrieb/plugin-organizer/releases).
 
+## [0.11.1] – 2026-10-17
+- Vendor list on the left sorted alphabetically.
+- Phone remote: language selectable via `?lang=de|en`.
+
 ## [0.11.0] – 2026-10-13
 - **Quick search over Live:** a global key (default ⌃⌥Space) opens a small search window over Live – type, Enter loads, ⇧ new track, ⌥ replace. Without typing: recent and most loaded, chains.
 - **Recently / most loaded:** as a sort order, in the quick search, on the Stream Deck and on your phone.
